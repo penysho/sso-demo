@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,4 +34,25 @@ func SaveSession(sessionID string, session model.Session) error {
 	}
 
 	return redisClient.Set(ctx, "session:"+sessionID, sessionJSON, 24*time.Hour).Err()
+}
+
+func GetSession(sessionID string) (*model.Session, error) {
+	if len(sessionID) != 64 {
+		return nil, fmt.Errorf("invalid session id format")
+	}
+
+	val, err := redisClient.Get(ctx, "session:"+sessionID).Result()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("session not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var session model.Session
+	if err := json.Unmarshal([]byte(val), &session); err != nil {
+		return nil, err
+	}
+
+	return &session, nil
 }

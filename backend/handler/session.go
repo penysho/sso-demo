@@ -57,3 +57,48 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func GetSession(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionID := r.Header.Get("X-Session-ID")
+	if sessionID == "" {
+		http.Error(w, "Session ID is required", http.StatusUnauthorized)
+		return
+	}
+
+	session, err := store.GetSession(sessionID)
+	if err != nil {
+		if err.Error() == "session not found" {
+			http.Error(w, "Invalid session", http.StatusUnauthorized)
+			return
+		}
+		if err.Error() == "invalid session id format" {
+			http.Error(w, "Invalid session format", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if time.Since(session.CreatedAt) > 24*time.Hour {
+		http.Error(w, "Session expired", http.StatusUnauthorized)
+		return
+	}
+
+	resp := model.SessionTokenResponse{
+		AccessToken: session.AccessToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
