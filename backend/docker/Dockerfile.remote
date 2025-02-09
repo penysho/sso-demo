@@ -1,0 +1,33 @@
+FROM golang:1.23.6-bookworm as builder
+
+CMD ["/bin/bash", "-b"]
+
+ENV GOPATH=/go
+
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /go/src/backend
+
+COPY ./backend .
+RUN go mod download && go build -o main ./main.go
+
+FROM debian:bookworm-slim as develop
+
+WORKDIR /app
+
+COPY --from=builder /go/src/backend/main .
+
+RUN groupadd --system --gid 1000 backend \
+    && useradd --no-log-init --system -u 1000 --gid backend --create-home backend
+USER backend
+
+EXPOSE 8181
+
+
+
+
+
+

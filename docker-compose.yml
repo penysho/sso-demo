@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./docker/Dockerfile.local
+    container_name: sso-demo_backend
+    volumes:
+      - .:/go/src
+    ports:
+      - "8011:8011"
+    tty: true
+    env_file:
+      - "./backend/.env"
+
+  redis:
+    image: redis:latest
+    container_name: sso-demo_redis
+    ports:
+      - "16379:6379"
+    tty: true
+    volumes:
+      - ./redis/data:/data
+
+networks:
+  default:
+    name: sso-demo_default
