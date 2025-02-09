@@ -24,7 +24,7 @@ RUN groupadd --system --gid 1000 backend \
     && useradd --no-log-init --system -u 1000 --gid backend --create-home backend
 USER backend
 
-EXPOSE 8181
+EXPOSE 8080
 
 
 

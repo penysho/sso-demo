@@ -9,7 +9,7 @@ services:
     volumes:
       - .:/go/src
     ports:
-      - "8011:8011"
+      - "8012:8080"
     tty: true
     env_file:
       - "./backend/.env"
