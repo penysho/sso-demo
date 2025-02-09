@@ -39,7 +39,7 @@ export default function HomePage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">ホーム画面</h1>
+            <h1 className="text-3xl font-bold text-gray-800">demo-store-1</h1>
             <div className="flex items-center gap-4">
               <span className="text-green-600 flex items-center">
                 <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
