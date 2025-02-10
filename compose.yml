@@ -1,18 +1,21 @@
-version: "3"
-
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: ./docker/Dockerfile.local
+      context: .
+      dockerfile: ./backend/docker/Dockerfile.remote
     container_name: sso-demo_backend
-    volumes:
-      - .:/go/src
     ports:
       - "8012:8080"
     tty: true
     env_file:
       - "./backend/.env"
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /go/src/backend
+        - action: rebuild
+          path: ./backend
 
   redis:
     image: redis:latest
