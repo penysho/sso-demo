@@ -23,12 +23,12 @@ export default function CallbackPage() {
 
     const handleCallback = async () => {
       try {
-        const sessionId = searchParams.get("session_id");
+        const code = searchParams.get("code");
         const state = searchParams.get("state");
 
         const savedState = sessionStorage.getItem("sso_state");
 
-        if (!sessionId || !state) {
+        if (!code || !state) {
           setError("必要なパラメータが不足しています");
           return;
         }
@@ -38,10 +38,9 @@ export default function CallbackPage() {
           return;
         }
 
-        const accessToken = await getSessionToken(sessionId);
+        const accessToken = await getSessionToken(code);
 
         sessionStorage.removeItem("sso_state");
-
         document.cookie = `${AUTH_TOKEN_KEY}=${accessToken}; path=/`;
 
         await wait(MIN_LOADING_TIME);

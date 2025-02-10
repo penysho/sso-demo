@@ -7,12 +7,13 @@ type SessionRequest struct {
 }
 
 type SessionResponse struct {
-	SessionID string `json:"session_id"`
+	AuthorizationCode string `json:"authorization_code"`
 }
 
 type Session struct {
-	AccessToken string    `json:"access_token"`
-	CreatedAt   time.Time `json:"created_at"`
+	AuthorizationCode string    `json:"authorization_code"`
+	AccessToken       string    `json:"access_token"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type SessionTokenResponse struct {

@@ -6,13 +6,17 @@ if (!API_URL) {
   throw new Error("API_URL is not defined");
 }
 
-export async function getSessionToken(sessionId: string): Promise<string> {
+export async function getSessionToken(
+  authorizationCode: string
+): Promise<string> {
   const response = await fetch(`${API_URL}/api/sessions/token`, {
-    method: "GET",
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Session-ID": sessionId,
     },
+    body: JSON.stringify({
+      authorization_code: authorizationCode,
+    }),
   });
 
   if (!response.ok) {

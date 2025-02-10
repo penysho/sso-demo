@@ -28,10 +28,10 @@ export default function LoginPage() {
           throw new Error("Access token not found");
         }
 
-        const sessionId = await createSession(accessToken);
+        const authCode = await createSession(accessToken);
 
         const finalRedirectUrl = new URL(redirectUrl);
-        finalRedirectUrl.searchParams.set("session_id", sessionId);
+        finalRedirectUrl.searchParams.set("code", authCode);
         finalRedirectUrl.searchParams.set("state", state);
 
         window.location.href = finalRedirectUrl.toString();

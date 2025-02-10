@@ -1,5 +1,5 @@
 export interface SessionResponse {
-  session_id: string;
+  authorization_code: string;
 }
 
 export interface SessionError {

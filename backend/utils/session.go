@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 )
 
-func GenerateSessionID() (string, error) {
+func GenerateAuthorizationCode() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err

@@ -23,5 +23,5 @@ export async function createSession(accessToken: string): Promise<string> {
   }
 
   const data = (await response.json()) as SessionResponse;
-  return data.session_id;
+  return data.authorization_code;
 }

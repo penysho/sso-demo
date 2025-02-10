@@ -30,9 +30,9 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := utils.GenerateSessionID()
+	authCode, err := utils.GenerateAuthorizationCode()
 	if err != nil {
-		http.Error(w, "Failed to generate session ID", http.StatusInternalServerError)
+		http.Error(w, "Failed to generate authorization code", http.StatusInternalServerError)
 		return
 	}
 
@@ -41,13 +41,13 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   time.Now(),
 	}
 
-	if err := store.SaveSession(sessionID, session); err != nil {
+	if err := store.SaveSession(authCode, session); err != nil {
 		http.Error(w, "Failed to store session", http.StatusInternalServerError)
 		return
 	}
 
 	resp := model.SessionResponse{
-		SessionID: sessionID,
+		AuthorizationCode: authCode,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -64,25 +64,29 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 func GetSession(w http.ResponseWriter, r *http.Request) {
 	log.Println("GetSession")
 
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	sessionID := r.Header.Get("X-Session-ID")
-	if sessionID == "" {
-		http.Error(w, "Session ID is required", http.StatusUnauthorized)
+	var req struct {
+		AuthorizationCode string `json:"authorization_code"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	session, err := store.GetSession(sessionID)
+	if req.AuthorizationCode == "" {
+		http.Error(w, "Authorization code is required", http.StatusBadRequest)
+		return
+	}
+
+	session, err := store.GetSession(req.AuthorizationCode)
 	if err != nil {
 		if err.Error() == "session not found" {
-			http.Error(w, "Invalid session", http.StatusUnauthorized)
-			return
-		}
-		if err.Error() == "invalid session id format" {
-			http.Error(w, "Invalid session format", http.StatusBadRequest)
+			http.Error(w, "Invalid authorization code", http.StatusUnauthorized)
 			return
 		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -90,7 +94,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if time.Since(session.CreatedAt) > 24*time.Hour {
-		http.Error(w, "Session expired", http.StatusUnauthorized)
+		http.Error(w, "Authorization code expired", http.StatusUnauthorized)
 		return
 	}
 
@@ -100,8 +104,8 @@ func GetSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-ID")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
