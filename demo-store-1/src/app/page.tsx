@@ -1,12 +1,13 @@
 "use client";
 
-import { AUTH_TOKEN_KEY } from "@/constants/auth";
+import { AUTH_TOKEN_KEY, AUTH_TOKEN_VALUE } from "@/constants/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [accessToken, setAccessToken] = useState<string>("");
+  const [isSSOLogin, setIsSSOLogin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,6 +23,8 @@ export default function HomePage() {
 
     setAccessToken(token);
     setIsLoggedIn(true);
+    // 通常ログインのトークンと比較してSSOログインかを判定
+    setIsSSOLogin(token !== AUTH_TOKEN_VALUE);
   }, [router]);
 
   const handleLogout = () => {
@@ -42,10 +45,12 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800">demo-store-1</h1>
             <div className="flex items-center gap-4">
-              <span className="text-green-600 flex items-center">
-                <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
-                ログイン中
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="text-green-600 flex items-center">
+                  <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                  ログイン中
+                </span>
+              </div>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
@@ -63,9 +68,14 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 アカウント情報
               </h2>
-              <p className="text-gray-600">
-                アクセストークン: {accessToken || "読み込み中..."}
-              </p>
+              <div className="space-y-2">
+                <p className="text-gray-600">
+                  アクセストークン: {accessToken || "読み込み中..."}
+                </p>
+                <p className="text-gray-600">
+                  ログイン方法: {isSSOLogin ? "SSOログイン" : "通常ログイン"}
+                </p>
+              </div>
             </div>
           </div>
         </div>

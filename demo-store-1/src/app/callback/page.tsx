@@ -6,6 +6,10 @@ import { checkAccessToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const MIN_LOADING_TIME = 2000;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export default function CallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,6 +44,7 @@ export default function CallbackPage() {
 
         document.cookie = `${AUTH_TOKEN_KEY}=${accessToken}; path=/`;
 
+        await wait(MIN_LOADING_TIME);
         router.push("/");
       } catch (err) {
         console.error(err);
