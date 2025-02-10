@@ -1,5 +1,6 @@
 "use client";
 
+import { AUTH_TOKEN_KEY, AUTH_TOKEN_VALUE } from "@/constants/auth";
 import { checkAccessToken, generateState } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -21,7 +22,7 @@ export default function LoginPage() {
 
     try {
       if (email !== "" && password !== "") {
-        document.cookie = "access_token=dummy_token; path=/";
+        document.cookie = `${AUTH_TOKEN_KEY}=${AUTH_TOKEN_VALUE}; path=/`;
         router.push("/");
       } else {
         setError("メールアドレスまたはパスワードが間違っています");

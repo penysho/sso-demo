@@ -1,5 +1,7 @@
 "use client";
 
+import { AUTH_TOKEN_KEY } from "@/constants/auth";
+import { getSessionToken } from "@/utils/api";
 import { checkAccessToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,13 +12,12 @@ export default function CallbackPage() {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    // すでにログインしている場合はホームにリダイレクト
     if (checkAccessToken()) {
       router.push("/");
       return;
     }
 
-    const handleCallback = () => {
+    const handleCallback = async () => {
       try {
         const sessionId = searchParams.get("session_id");
         const state = searchParams.get("state");
@@ -33,9 +34,11 @@ export default function CallbackPage() {
           return;
         }
 
+        const accessToken = await getSessionToken(sessionId);
+
         sessionStorage.removeItem("sso_state");
 
-        document.cookie = "access_token=sso_dummy_token; path=/";
+        document.cookie = `${AUTH_TOKEN_KEY}=${accessToken}; path=/`;
 
         router.push("/");
       } catch (err) {

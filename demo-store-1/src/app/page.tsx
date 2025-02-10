@@ -1,5 +1,6 @@
 "use client";
 
+import { AUTH_TOKEN_KEY } from "@/constants/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -11,7 +12,7 @@ export default function HomePage() {
   useEffect(() => {
     const cookies = document.cookie.split(";");
     const token = cookies
-      .find((cookie) => cookie.trim().startsWith("access_token="))
+      .find((cookie) => cookie.trim().startsWith(`${AUTH_TOKEN_KEY}=`))
       ?.split("=")[1];
 
     if (!token) {
@@ -24,7 +25,7 @@ export default function HomePage() {
   }, [router]);
 
   const handleLogout = () => {
-    document.cookie = "access_token=; path=/; max-age=0";
+    document.cookie = `${AUTH_TOKEN_KEY}=; path=/; max-age=0`;
     setIsLoggedIn(false);
     setAccessToken("");
     router.push("/login");
