@@ -8,6 +8,9 @@ interface FrontendStackProps extends cdk.StackProps {
   readonly elbStack: ElbStack;
 }
 
+/**
+ * Define resources for the frontend.
+ */
 export class FrontendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
     super(scope, id, props);

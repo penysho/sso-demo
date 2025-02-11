@@ -6,16 +6,18 @@ import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2"
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { deployEnv, projectName } from "../config/config";
+import { ElasticacheStack } from "./elasticache";
 import { ElbStack } from "./elb";
 import { VpcStack } from "./vpc";
 
 export interface BackendStackProps extends cdk.StackProps {
   readonly vpcStack: VpcStack;
   readonly elbStack: ElbStack;
+  readonly elasticacheStack: ElasticacheStack;
 }
 
 /**
- * Define resources for the applications project.
+ * Define resources for the backend.
  */
 export class BackendStack extends cdk.Stack {
   /**
@@ -205,6 +207,16 @@ export class BackendStack extends cdk.Stack {
               containerPort: containerPort,
             },
           ],
+          environment: [
+            {
+              name: "REDIS_ADDR",
+              value: props.elasticacheStack.cacheAddr,
+            },
+            {
+              name: "CORS_ALLOWED_ORIGIN",
+              value: "*",
+            },
+          ],
         },
       ],
     });
@@ -228,7 +240,10 @@ export class BackendStack extends cdk.Stack {
       networkConfiguration: {
         awsvpcConfiguration: {
           assignPublicIp: "ENABLED",
-          securityGroups: [props.elbStack.ElbTargetSecurityGroup.attrGroupId],
+          securityGroups: [
+            props.elbStack.ElbTargetSecurityGroup.attrGroupId,
+            props.elasticacheStack.cacheClientSg.securityGroupId,
+          ],
           subnets: publicSubnets.subnetIds,
         },
       },
