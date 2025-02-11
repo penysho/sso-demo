@@ -23,7 +23,7 @@ export class BackendStack extends cdk.Stack {
   /**
    * ECR
    */
-  public readonly repository: ecr.CfnRepository;
+  public readonly repository: ecr.IRepository;
   /**
    * ECS Cluster
    */
@@ -35,11 +35,11 @@ export class BackendStack extends cdk.Stack {
   /**
    * Blue Target Group
    */
-  public readonly blueTargetGroup: elasticloadbalancingv2.CfnTargetGroup;
+  public readonly blueTargetGroup: elasticloadbalancingv2.IApplicationTargetGroup;
   /**
    * Green Target Group
    */
-  public readonly greenTargetGroup: elasticloadbalancingv2.CfnTargetGroup;
+  public readonly greenTargetGroup: elasticloadbalancingv2.IApplicationTargetGroup;
 
   public constructor(scope: cdk.App, id: string, props: BackendStackProps) {
     super(scope, id, props);
@@ -58,37 +58,45 @@ export class BackendStack extends cdk.Stack {
     });
     this.cluster.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    this.blueTargetGroup = new elasticloadbalancingv2.CfnTargetGroup(
+    this.blueTargetGroup = new elasticloadbalancingv2.ApplicationTargetGroup(
       this,
       "BlueTargetGroup",
       {
-        vpcId: vpc.vpcId!,
-        name: `${projectName}-${deployEnv}-blue`,
-        protocol: "HTTP",
+        vpc,
         port: containerPort,
-        targetType: "ip",
-        healthCheckPath: "/health",
-        healthCheckPort: containerPort.toString(),
+        targetType: elasticloadbalancingv2.TargetType.IP,
+        healthCheck: {
+          path: "/health",
+          port: containerPort.toString(),
+        },
       }
     );
-    this.blueTargetGroup.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
+    props.elbStack.Elb443Listener.addTargetGroups(
+      `${projectName}-${deployEnv}-blue`,
+      {
+        targetGroups: [this.blueTargetGroup],
+      }
+    );
 
-    this.greenTargetGroup = new elasticloadbalancingv2.CfnTargetGroup(
+    this.greenTargetGroup = new elasticloadbalancingv2.ApplicationTargetGroup(
       this,
       "GreenTargetGroup",
       {
-        vpcId: vpc.vpcId!,
-        name: `${projectName}-${deployEnv}-green`,
-        protocol: "HTTP",
+        vpc,
         port: containerPort,
-        targetType: "ip",
-        healthCheckPath: "/health",
-        healthCheckPort: containerPort.toString(),
+        targetType: elasticloadbalancingv2.TargetType.IP,
+        healthCheck: {
+          path: "/health",
+          port: containerPort.toString(),
+        },
       }
     );
-    this.greenTargetGroup.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
+    props.elbStack.Elb443Listener.addTargetGroups(
+      `${projectName}-${deployEnv}-green`,
+      {
+        targetGroups: [this.greenTargetGroup],
+      }
+    );
 
     const logGroup = new logs.CfnLogGroup(this, "LogGroup", {
       logGroupName: `/ecs/${projectName}-${deployEnv}`,
@@ -96,14 +104,17 @@ export class BackendStack extends cdk.Stack {
     });
     logGroup.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    this.repository = new ecr.CfnRepository(this, "Repository", {
+    this.repository = new ecr.Repository(this, "Repository", {
       repositoryName: `${projectName}-${deployEnv}`,
-      lifecyclePolicy: {
-        lifecyclePolicyText:
-          '{"rules":[{"rulePriority":1,"description":"Expire images older than 3 generations","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":3},"action":{"type":"expire"}}]}',
-      },
+      lifecycleRules: [
+        {
+          rulePriority: 1,
+          description: "Expire images older than 3 generations",
+          maxImageCount: 3,
+          tagStatus: ecr.TagStatus.ANY,
+        },
+      ],
     });
-    this.repository.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
     const taskExecutionRole = new iam.CfnRole(this, "TaskExecutionRole", {
       roleName: `${projectName}-${deployEnv}-task-execution-role`,
@@ -191,7 +202,7 @@ export class BackendStack extends cdk.Stack {
       containerDefinitions: [
         {
           name: containerName,
-          image: [this.repository.attrRepositoryUri, "latest"].join(":"),
+          image: [this.repository.repositoryUri, "latest"].join(":"),
           logConfiguration: {
             logDriver: "awslogs",
             options: {
@@ -232,7 +243,7 @@ export class BackendStack extends cdk.Stack {
       desiredCount: 1,
       loadBalancers: [
         {
-          targetGroupArn: this.blueTargetGroup.ref,
+          targetGroupArn: this.blueTargetGroup.targetGroupArn,
           containerPort: containerPort,
           containerName: containerName,
         },
@@ -241,7 +252,7 @@ export class BackendStack extends cdk.Stack {
         awsvpcConfiguration: {
           assignPublicIp: "ENABLED",
           securityGroups: [
-            props.elbStack.ElbTargetSecurityGroup.attrGroupId,
+            props.elbStack.ElbTargetSecurityGroup.securityGroupId,
             props.elasticacheStack.cacheClientSg.securityGroupId,
           ],
           subnets: publicSubnets.subnetIds,

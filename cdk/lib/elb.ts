@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { currentEnvConfig } from "../config/config";
 import { VpcStack } from "./vpc";
 
 export interface ElbStackProps extends cdk.StackProps {
@@ -15,107 +15,89 @@ export class ElbStack extends cdk.Stack {
   /**
    * This is the ARN of the ALB for applications.
    */
-  public readonly LoadBalancer: elasticloadbalancingv2.CfnLoadBalancer;
+  public readonly LoadBalancer: elasticloadbalancingv2.IApplicationLoadBalancer;
   /**
    * Listener ARN for port 80 used by ALB in applications.
    */
-  public readonly Elb80Listener: elasticloadbalancingv2.CfnListener;
+  public readonly Elb80Listener: elasticloadbalancingv2.IApplicationListener;
   /**
    * Listener ARN for port 443 used by ALB in applications.
    */
-  public readonly Elb443Listener: elasticloadbalancingv2.CfnListener;
+  public readonly Elb443Listener: elasticloadbalancingv2.IApplicationListener;
   /**
    * This is the group ID of the security group for the ALB target of applications.
    */
-  public readonly GreenListener: elasticloadbalancingv2.CfnListener;
+  public readonly GreenListener: elasticloadbalancingv2.IApplicationListener;
   /**
    * This is the ARN of the listener for the Green environment used in the ALB of applications.
    */
-  public readonly ElbTargetSecurityGroup: ec2.CfnSecurityGroup;
+  public readonly ElbTargetSecurityGroup: ec2.ISecurityGroup;
 
   public constructor(scope: cdk.App, id: string, props: ElbStackProps) {
     super(scope, id, props);
 
     const vpc = props.vpcStack.vpc;
-    const publicSubnets = vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PUBLIC,
-    });
 
     // Resources
-    const ElbSecurityGroup = new ec2.CfnSecurityGroup(
-      this,
-      "ElbSecurityGroup",
-      {
-        groupDescription:
-          "This security group is allowed in the security group of the resource set in the Target Group.",
-        groupName: `${projectName}-${deployEnv}-elb`,
-        vpcId: vpc.vpcId!,
-      }
-    );
-    ElbSecurityGroup.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
+    const ElbSecurityGroup = new ec2.SecurityGroup(this, "ElbSecurityGroup", {
+      vpc,
+      allowAllOutbound: true,
+      description:
+        "This security group is allowed in the security group of the resource set in the Target Group.",
+    });
 
-    this.ElbTargetSecurityGroup = new ec2.CfnSecurityGroup(
+    this.ElbTargetSecurityGroup = new ec2.SecurityGroup(
       this,
       "ElbTargetSecurityGroup",
       {
-        groupDescription:
+        vpc,
+        allowAllOutbound: true,
+        description:
           "This security group allows interaction with the ELBs set up in the target group. It is also allowed in the security group of the RDS to which the connection target is connected.",
-        groupName: `${projectName}-${deployEnv}-elb-target`,
-        securityGroupIngress: [
-          {
-            sourceSecurityGroupId: ElbSecurityGroup.attrGroupId,
-            ipProtocol: "-1",
-          },
-        ],
-        vpcId: vpc.vpcId!,
       }
     );
-    this.ElbTargetSecurityGroup.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
+    this.ElbTargetSecurityGroup.addIngressRule(
+      ec2.Peer.securityGroupId(ElbSecurityGroup.securityGroupId),
+      ec2.Port.tcp(80),
+      "Allow inbound from ELB security group"
+    );
+    this.ElbTargetSecurityGroup.addIngressRule(
+      ec2.Peer.securityGroupId(ElbSecurityGroup.securityGroupId),
+      ec2.Port.tcp(443),
+      "Allow inbound from ELB security group"
+    );
 
-    this.LoadBalancer = new elasticloadbalancingv2.CfnLoadBalancer(
+    const defaultElbSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(
+      this,
+      "DefaultElbSecurityGroup",
+      currentEnvConfig.defaultElbSecurityGroupId
+    );
+
+    const LoadBalancer = new elasticloadbalancingv2.ApplicationLoadBalancer(
       this,
       "LoadBalancer",
       {
-        name: `${projectName}-${deployEnv}`,
-        ipAddressType: "ipv4",
-        type: "application",
-        scheme: "internet-facing",
-        loadBalancerAttributes: [
-          {
-            key: "deletion_protection.enabled",
-            value: "false",
-          },
-          {
-            key: "idle_timeout.timeout_seconds",
-            value: "60",
-          },
-        ],
-        securityGroups: [
-          ElbSecurityGroup.ref,
-          currentEnvConfig.defaultElbSecurityGroupId,
-        ],
-        subnets: publicSubnets.subnetIds!,
+        internetFacing: true,
+        vpc,
+        vpcSubnets: {
+          subnets: vpc.privateSubnets,
+        },
       }
     );
-    this.LoadBalancer.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
+    LoadBalancer.addSecurityGroup(ElbSecurityGroup);
+    LoadBalancer.addSecurityGroup(defaultElbSecurityGroup);
 
-    this.Elb443Listener = new elasticloadbalancingv2.CfnListener(
+    this.Elb443Listener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "Elb443Listener",
       {
-        defaultActions: [
-          {
-            fixedResponseConfig: {
-              contentType: "text/plain",
-              statusCode: "403",
-            },
-            type: "fixed-response",
-          },
-        ],
-        loadBalancerArn: this.LoadBalancer.ref,
+        loadBalancer: LoadBalancer,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
         port: 443,
-        protocol: "HTTPS",
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTPS,
         certificates: [
           {
             certificateArn: currentEnvConfig.certificateArn,
@@ -123,47 +105,33 @@ export class ElbStack extends cdk.Stack {
         ],
       }
     );
-    this.Elb443Listener.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
 
-    this.Elb80Listener = new elasticloadbalancingv2.CfnListener(
+    this.Elb80Listener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "Elb80Listener",
       {
-        defaultActions: [
-          {
-            fixedResponseConfig: {
-              contentType: "text/plain",
-              statusCode: "403",
-            },
-            type: "fixed-response",
-          },
-        ],
-        loadBalancerArn: this.LoadBalancer.ref,
+        loadBalancer: LoadBalancer,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
         port: 80,
-        protocol: "HTTP",
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
       }
     );
-    this.Elb80Listener.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    this.GreenListener = new elasticloadbalancingv2.CfnListener(
+    this.GreenListener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "GreenListener",
       {
-        defaultActions: [
-          {
-            fixedResponseConfig: {
-              contentType: "text/plain",
-              statusCode: "403",
-            },
-            type: "fixed-response",
-          },
-        ],
-        loadBalancerArn: this.LoadBalancer.ref,
+        loadBalancer: LoadBalancer,
         port: 10443,
-        protocol: "HTTP",
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
       }
     );
-    this.GreenListener.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
   }
 }

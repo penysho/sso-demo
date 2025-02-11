@@ -93,7 +93,7 @@ export class FrontendStack extends cdk.Stack {
       ],
     });
 
-    store1Amplify.environmentVariables = [
+    store1Amplify.addPropertyOverride("environmentVariables", [
       {
         name: "AMPLIFY_MONOREPO_APP_ROOT",
         value: "demo-store-1",
@@ -104,11 +104,11 @@ export class FrontendStack extends cdk.Stack {
       },
       {
         name: "NEXT_PUBLIC_API_URL",
-        value: props.elbStack.LoadBalancer.attrDnsName,
+        value: props.elbStack.LoadBalancer.loadBalancerDnsName,
       },
-    ];
+    ]);
 
-    store2Amplify.environmentVariables = [
+    store2Amplify.addPropertyOverride("environmentVariables", [
       {
         name: "AMPLIFY_MONOREPO_APP_ROOT",
         value: "demo-store-2",
@@ -119,9 +119,9 @@ export class FrontendStack extends cdk.Stack {
       },
       {
         name: "NEXT_PUBLIC_API_URL",
-        value: props.elbStack.LoadBalancer.attrDnsName,
+        value: props.elbStack.LoadBalancer.loadBalancerDnsName,
       },
-    ];
+    ]);
 
     new CfnBranch(this, "Store1Branch", {
       appId: store1Amplify.ref,

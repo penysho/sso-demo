@@ -40,9 +40,9 @@ export class ElasticacheStack extends cdk.Stack {
       allowAllOutbound: true,
     });
     cacheSg.addIngressRule(
-      ec2.Peer.anyIpv4(),
+      ec2.Peer.securityGroupId(this.cacheClientSg.securityGroupId),
       ec2.Port.tcp(6379),
-      "Allow inbound from any IPv4 address"
+      "Allow inbound from cache client"
     );
 
     const cluster = new elasticache.CfnReplicationGroup(
