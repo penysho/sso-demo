@@ -3,12 +3,12 @@ import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
-import { AppStack } from "./app";
+import { BackendStack } from "./backend";
 import { ElbStack } from "./elb";
 
 interface CiStackProps extends cdk.StackProps {
   readonly elbStack: ElbStack;
-  readonly appStack: AppStack;
+  readonly backendStack: BackendStack;
 }
 
 /**
@@ -72,8 +72,8 @@ export class CiStack extends cdk.Stack {
       },
       ecsServices: [
         {
-          clusterName: props.appStack.cluster.ref,
-          serviceName: props.appStack.service.attrName,
+          clusterName: props.backendStack.cluster.ref,
+          serviceName: props.backendStack.service.attrName,
         },
       ],
       loadBalancerInfo: {
@@ -81,10 +81,10 @@ export class CiStack extends cdk.Stack {
           {
             targetGroups: [
               {
-                name: props.appStack.blueTargetGroup.attrTargetGroupName,
+                name: props.backendStack.blueTargetGroup.attrTargetGroupName,
               },
               {
-                name: props.appStack.greenTargetGroup.attrTargetGroupName,
+                name: props.backendStack.greenTargetGroup.attrTargetGroupName,
               },
             ],
             prodTrafficRoute: {
@@ -145,7 +145,7 @@ export class CiStack extends cdk.Stack {
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
         ],
-        resources: [props.appStack.repository.attrArn],
+        resources: [props.backendStack.repository.attrArn],
         effect: iam.Effect.ALLOW,
       })
     );

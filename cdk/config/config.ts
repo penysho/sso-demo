@@ -23,6 +23,7 @@ export interface EnvConfig {
   certificateArn: string;
   defaultElbSecurityGroupId: string;
   branch: string;
+  githubToken: string;
 }
 
 export const envConfig: Record<EnvCode, EnvConfig> = {
@@ -31,18 +32,21 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
     defaultElbSecurityGroupId: "sg-0781f96eb35b3aaad",
     branch: "main",
+    githubToken: "",
   },
   tst: {
     certificateArn:
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
     defaultElbSecurityGroupId: "sg-0781f96eb35b3aaad",
     branch: "main",
+    githubToken: "",
   },
   prd: {
     certificateArn:
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
     defaultElbSecurityGroupId: "sg-0781f96eb35b3aaad",
     branch: "main",
+    githubToken: "",
   },
 };
 

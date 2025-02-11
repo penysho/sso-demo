@@ -9,7 +9,7 @@ import { deployEnv, projectName } from "../config/config";
 import { ElbStack } from "./elb";
 import { VpcStack } from "./vpc";
 
-export interface AppStackProps extends cdk.StackProps {
+export interface BackendStackProps extends cdk.StackProps {
   readonly vpcStack: VpcStack;
   readonly elbStack: ElbStack;
 }
@@ -17,7 +17,7 @@ export interface AppStackProps extends cdk.StackProps {
 /**
  * Define resources for the applications project.
  */
-export class AppStack extends cdk.Stack {
+export class BackendStack extends cdk.Stack {
   /**
    * ECR
    */
@@ -39,7 +39,7 @@ export class AppStack extends cdk.Stack {
    */
   public readonly greenTargetGroup: elasticloadbalancingv2.CfnTargetGroup;
 
-  public constructor(scope: cdk.App, id: string, props: AppStackProps) {
+  public constructor(scope: cdk.App, id: string, props: BackendStackProps) {
     super(scope, id, props);
 
     const vpc = props.vpcStack.vpc;
