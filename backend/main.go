@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"backend/config"
 	"backend/handler"
 	"backend/middleware"
 	"backend/store"
@@ -13,6 +14,8 @@ func main() {
 	if err := store.InitRedis(); err != nil {
 		log.Fatalf("Failed to initialize Redis: %v", err)
 	}
+
+	config.Init()
 
 	http.HandleFunc("/api/sessions", middleware.Cors(handler.CreateSession))
 	http.HandleFunc("/api/sessions/token", middleware.Cors(handler.GetSession))

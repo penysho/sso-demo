@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"backend/config"
 	"backend/model"
 	"backend/store"
 	"backend/utils"
@@ -51,7 +52,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3001")
+	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
@@ -103,7 +104,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Cache-Control", "no-store")

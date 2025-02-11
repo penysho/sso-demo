@@ -6,7 +6,7 @@ import { checkAccessToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const MIN_LOADING_TIME = 2000;
+const MIN_LOADING_TIME = 1000;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
