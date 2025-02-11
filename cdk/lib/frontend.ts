@@ -14,7 +14,7 @@ export class FrontendStack extends cdk.Stack {
 
     const store1Amplify = new CfnApp(this, "Store1Amplify", {
       name: "demo-store-1",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       repository: "https://github.com/penysho/sso-demo",
       buildSpec: BuildSpec.fromObjectToYaml({
         version: 1,
@@ -53,7 +53,7 @@ export class FrontendStack extends cdk.Stack {
 
     const store2Amplify = new CfnApp(this, "Store2Amplify", {
       name: "demo-store-2",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       repository: "https://github.com/penysho/sso-demo",
       buildSpec: BuildSpec.fromObjectToYaml({
         version: 1,
