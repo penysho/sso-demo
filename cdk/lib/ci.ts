@@ -81,17 +81,17 @@ export class CiStack extends cdk.Stack {
           {
             targetGroups: [
               {
-                name: props.backendStack.blueTargetGroup.attrTargetGroupName,
+                name: props.backendStack.blueTargetGroup.targetGroupName,
               },
               {
-                name: props.backendStack.greenTargetGroup.attrTargetGroupName,
+                name: props.backendStack.greenTargetGroup.targetGroupName,
               },
             ],
             prodTrafficRoute: {
-              listenerArns: [props.elbStack.Elb443Listener.attrListenerArn],
+              listenerArns: [props.elbStack.Elb443Listener.listenerArn],
             },
             testTrafficRoute: {
-              listenerArns: [props.elbStack.GreenListener.attrListenerArn],
+              listenerArns: [props.elbStack.GreenListener.listenerArn],
             },
           },
         ],
@@ -145,7 +145,7 @@ export class CiStack extends cdk.Stack {
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
         ],
-        resources: [props.backendStack.repository.attrArn],
+        resources: [props.backendStack.repository.repositoryArn],
         effect: iam.Effect.ALLOW,
       })
     );
