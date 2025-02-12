@@ -1,11 +1,14 @@
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
+import { DockerImageAsset, Platform } from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
-import { deployEnv, projectName } from "../config/config";
+import * as ecrdeploy from "cdk-ecr-deployment";
+import * as path from "path";
+import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { ElasticacheStack } from "./elasticache";
 import { ElbStack } from "./elb";
 import { VpcStack } from "./vpc";
@@ -27,11 +30,23 @@ export class BackendStack extends cdk.Stack {
   /**
    * ECS Cluster
    */
-  public readonly cluster: ecs.CfnCluster;
+  public readonly cluster: ecs.ICluster;
   /**
    * ECS Service
    */
-  public readonly service: ecs.CfnService;
+  public readonly service: ecs.IBaseService;
+  /**
+   * Listener ARN for port 80 used by ALB in applications.
+   */
+  public readonly Elb80Listener: elasticloadbalancingv2.IApplicationListener;
+  /**
+   * Listener ARN for port 443 used by ALB in applications.
+   */
+  public readonly Elb443Listener: elasticloadbalancingv2.IApplicationListener;
+  /**
+   * This is the group ID of the security group for the ALB target of applications.
+   */
+  public readonly GreenListener: elasticloadbalancingv2.IApplicationListener;
   /**
    * Blue Target Group
    */
@@ -49,21 +64,67 @@ export class BackendStack extends cdk.Stack {
       subnetType: ec2.SubnetType.PUBLIC,
     });
 
-    const containerName = "app";
-    const containerPort = 8011;
+    const containerName = "backend";
+    const containerPort = 8080;
 
     // Resources
-    this.cluster = new ecs.CfnCluster(this, "Cluster", {
-      clusterName: `${projectName}-${deployEnv}`,
-    });
-    this.cluster.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
+    // Listeners
+    this.Elb443Listener = new elasticloadbalancingv2.ApplicationListener(
+      this,
+      "Elb443Listener",
+      {
+        loadBalancer: props.elbStack.LoadBalancer,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
+        port: 443,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+        certificates: [
+          {
+            certificateArn: currentEnvConfig.certificateArn,
+          },
+        ],
+      }
+    );
+
+    this.Elb80Listener = new elasticloadbalancingv2.ApplicationListener(
+      this,
+      "Elb80Listener",
+      {
+        loadBalancer: props.elbStack.LoadBalancer,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
+        port: 80,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
+      }
+    );
+
+    this.GreenListener = new elasticloadbalancingv2.ApplicationListener(
+      this,
+      "GreenListener",
+      {
+        loadBalancer: props.elbStack.LoadBalancer,
+        port: 10443,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
+        defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
+          403,
+          { contentType: "text/plain" }
+        ),
+      }
+    );
+
+    // Target Groups
     this.blueTargetGroup = new elasticloadbalancingv2.ApplicationTargetGroup(
       this,
       "BlueTargetGroup",
       {
         vpc,
         port: containerPort,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
         targetType: elasticloadbalancingv2.TargetType.IP,
         healthCheck: {
           path: "/health",
@@ -71,12 +132,9 @@ export class BackendStack extends cdk.Stack {
         },
       }
     );
-    props.elbStack.Elb443Listener.addTargetGroups(
-      `${projectName}-${deployEnv}-blue`,
-      {
-        targetGroups: [this.blueTargetGroup],
-      }
-    );
+    this.Elb443Listener.addTargetGroups(`${projectName}-${deployEnv}-blue`, {
+      targetGroups: [this.blueTargetGroup],
+    });
 
     this.greenTargetGroup = new elasticloadbalancingv2.ApplicationTargetGroup(
       this,
@@ -84,6 +142,7 @@ export class BackendStack extends cdk.Stack {
       {
         vpc,
         port: containerPort,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
         targetType: elasticloadbalancingv2.TargetType.IP,
         healthCheck: {
           path: "/health",
@@ -91,19 +150,14 @@ export class BackendStack extends cdk.Stack {
         },
       }
     );
-    props.elbStack.Elb443Listener.addTargetGroups(
-      `${projectName}-${deployEnv}-green`,
-      {
-        targetGroups: [this.greenTargetGroup],
-      }
-    );
-
-    const logGroup = new logs.CfnLogGroup(this, "LogGroup", {
-      logGroupName: `/ecs/${projectName}-${deployEnv}`,
-      retentionInDays: 90,
+    this.GreenListener.addTargetGroups(`${projectName}-${deployEnv}-green`, {
+      targetGroups: [this.greenTargetGroup],
     });
-    logGroup.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
+    // Cluster
+    this.cluster = new ecs.Cluster(this, "Cluster", {});
+
+    // ECR
     this.repository = new ecr.Repository(this, "Repository", {
       repositoryName: `${projectName}-${deployEnv}`,
       lifecycleRules: [
@@ -114,63 +168,32 @@ export class BackendStack extends cdk.Stack {
           tagStatus: ecr.TagStatus.ANY,
         },
       ],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      emptyOnDelete: true,
     });
 
-    const taskExecutionRole = new iam.CfnRole(this, "TaskExecutionRole", {
-      roleName: `${projectName}-${deployEnv}-task-execution-role`,
-      managedPolicyArns: [
-        "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-      ],
-      assumeRolePolicyDocument: {
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Allow",
-            Principal: {
-              Service: "ecs-tasks.amazonaws.com",
-            },
-            Action: "sts:AssumeRole",
-          },
-        ],
+    const dockerImageAsset = new DockerImageAsset(this, "DockerImageAsset", {
+      directory: path.join(__dirname, "../.."),
+      buildArgs: {
+        CGO_ENABLED: "0",
+        GOOS: "linux",
+        GOARCH: "amd64",
       },
+      file: "backend/docker/Dockerfile.remote",
+      platform: Platform.LINUX_AMD64,
     });
-    taskExecutionRole.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    const taskRole = new iam.CfnRole(this, "TaskRole", {
-      roleName: `${projectName}-${deployEnv}-task-role`,
-      policies: [
-        {
-          policyName: `${projectName}-${deployEnv}-task-role-policy`,
-          policyDocument: {
-            Version: "2012-10-17",
-            Statement: [
-              {
-                Effect: "Allow",
-                Action: [
-                  "ssmmessages:CreateControlChannel",
-                  "ssmmessages:CreateDataChannel",
-                  "ssmmessages:OpenControlChannel",
-                  "ssmmessages:OpenDataChannel",
-                ],
-                Resource: ["*"],
-              },
-            ],
-          },
-        },
-      ],
-      assumeRolePolicyDocument: {
-        Statement: [
-          {
-            Effect: "Allow",
-            Principal: {
-              Service: "ecs-tasks.amazonaws.com",
-            },
-            Action: "sts:AssumeRole",
-          },
-        ],
-      },
+    new ecrdeploy.ECRDeployment(this, "DeployDockerImage", {
+      src: new ecrdeploy.DockerImageName(dockerImageAsset.imageUri),
+      dest: new ecrdeploy.DockerImageName(
+        [this.repository.repositoryUri, "latest"].join(":")
+      ),
     });
-    taskRole.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
+
+    // Log Group
+    const logGroup = new logs.LogGroup(this, "LogGroup", {
+      retention: logs.RetentionDays.THREE_MONTHS,
+    });
 
     const metricFilterForServerError = new logs.CfnMetricFilter(
       this,
@@ -178,7 +201,7 @@ export class BackendStack extends cdk.Stack {
       {
         filterName: "server-error",
         filterPattern: "?ERROR ?error ?Error",
-        logGroupName: logGroup.ref,
+        logGroupName: logGroup.logGroupName,
         metricTransformations: [
           {
             metricValue: "1",
@@ -191,76 +214,64 @@ export class BackendStack extends cdk.Stack {
     metricFilterForServerError.cfnOptions.deletionPolicy =
       cdk.CfnDeletionPolicy.DELETE;
 
-    const taskDefinition = new ecs.CfnTaskDefinition(this, "TaskDefinition", {
-      cpu: "256",
-      taskRoleArn: taskRole.attrArn,
-      executionRoleArn: taskExecutionRole.attrArn,
-      family: `${projectName}-${deployEnv}`,
-      memory: "512",
-      networkMode: "awsvpc",
-      requiresCompatibilities: ["FARGATE"],
-      containerDefinitions: [
+    // Task definition
+    const taskExecutionRole = new iam.Role(this, "TaskExecutionRole", {
+      assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+      managedPolicies: [
         {
-          name: containerName,
-          image: [this.repository.repositoryUri, "latest"].join(":"),
-          logConfiguration: {
-            logDriver: "awslogs",
-            options: {
-              "awslogs-group": logGroup.ref,
-              "awslogs-region": `${this.region}`,
-              "awslogs-stream-prefix": "ecs",
-            },
-          },
-          portMappings: [
-            {
-              hostPort: containerPort,
-              protocol: "tcp",
-              containerPort: containerPort,
-            },
-          ],
-          environment: [
-            {
-              name: "REDIS_ADDR",
-              value: props.elasticacheStack.cacheAddr,
-            },
-            {
-              name: "CORS_ALLOWED_ORIGIN",
-              value: "*",
-            },
-          ],
+          managedPolicyArn:
+            "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
         },
       ],
     });
-    taskDefinition.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
 
-    this.service = new ecs.CfnService(this, "Service", {
-      cluster: this.cluster.ref,
-      enableExecuteCommand: true,
-      launchType: "FARGATE",
-      deploymentController: {
-        type: "CODE_DEPLOY",
-      },
-      desiredCount: 1,
-      loadBalancers: [
+    const taskDefinition = new ecs.FargateTaskDefinition(
+      this,
+      "TaskDefinition",
+      {
+        cpu: 256,
+        memoryLimitMiB: 512,
+        executionRole: taskExecutionRole,
+      }
+    );
+    const container = taskDefinition.addContainer(containerName, {
+      containerName,
+      image: ecs.ContainerImage.fromEcrRepository(this.repository, "latest"),
+      essential: true,
+      portMappings: [
         {
-          targetGroupArn: this.blueTargetGroup.targetGroupArn,
           containerPort: containerPort,
-          containerName: containerName,
+          hostPort: containerPort,
+          protocol: ecs.Protocol.TCP,
         },
       ],
-      networkConfiguration: {
-        awsvpcConfiguration: {
-          assignPublicIp: "ENABLED",
-          securityGroups: [
-            props.elbStack.ElbTargetSecurityGroup.securityGroupId,
-            props.elasticacheStack.cacheClientSg.securityGroupId,
-          ],
-          subnets: publicSubnets.subnetIds,
-        },
-      },
-      serviceName: `${projectName}-${deployEnv}-service`,
-      taskDefinition: taskDefinition.ref,
+      logging: ecs.LogDrivers.awsLogs({
+        logGroup,
+        streamPrefix: "ecs",
+      }),
     });
-    this.service.cfnOptions.deletionPolicy = cdk.CfnDeletionPolicy.DELETE;
+    container.addEnvironment("REDIS_ADDR", props.elasticacheStack.cacheAddr);
+    container.addEnvironment("CORS_ALLOWED_ORIGIN", "*");
+
+    // Service
+    const service = new ecs.FargateService(this, "Service", {
+      cluster: this.cluster,
+      taskDefinition,
+      desiredCount: 1,
+      deploymentController: {
+        type: ecs.DeploymentControllerType.CODE_DEPLOY,
+      },
+      enableExecuteCommand: true,
+      assignPublicIp: true,
+      securityGroups: [
+        props.elbStack.ElbTargetSg,
+        props.elasticacheStack.cacheClientSg,
+      ],
+      vpcSubnets: {
+        subnets: publicSubnets.subnets,
+      },
+    });
+    service.attachToApplicationTargetGroup(this.blueTargetGroup);
+    this.service = service;
   }
 }

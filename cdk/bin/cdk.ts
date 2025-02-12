@@ -50,7 +50,6 @@ const backendStack = new BackendStack(
 
 new CiStack(app, `${projectName}-${deployEnv}-ci`, {
   ...envProps,
-  elbStack: elbStack,
   backendStack: backendStack,
 });
 

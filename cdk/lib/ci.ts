@@ -4,10 +4,8 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { BackendStack } from "./backend";
-import { ElbStack } from "./elb";
 
 interface CiStackProps extends cdk.StackProps {
-  readonly elbStack: ElbStack;
   readonly backendStack: BackendStack;
 }
 
@@ -72,8 +70,8 @@ export class CiStack extends cdk.Stack {
       },
       ecsServices: [
         {
-          clusterName: props.backendStack.cluster.ref,
-          serviceName: props.backendStack.service.attrName,
+          clusterName: props.backendStack.cluster.clusterName,
+          serviceName: props.backendStack.service.serviceName,
         },
       ],
       loadBalancerInfo: {
@@ -88,10 +86,10 @@ export class CiStack extends cdk.Stack {
               },
             ],
             prodTrafficRoute: {
-              listenerArns: [props.elbStack.Elb443Listener.listenerArn],
+              listenerArns: [props.backendStack.Elb443Listener.listenerArn],
             },
             testTrafficRoute: {
-              listenerArns: [props.elbStack.GreenListener.listenerArn],
+              listenerArns: [props.backendStack.GreenListener.listenerArn],
             },
           },
         ],
