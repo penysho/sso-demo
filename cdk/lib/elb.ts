@@ -76,7 +76,7 @@ export class ElbStack extends cdk.Stack {
 
     new route53.CfnRecordSet(this, "RecordSet", {
       name: "sso-demo-api.pesh-igpjt.com",
-      hostedZoneId: currentEnvConfig.hostedZoneId,
+      hostedZoneId: currentEnvConfig.apiDomainHostedZoneId,
       type: "A",
       aliasTarget: {
         dnsName: this.LoadBalancer.loadBalancerDnsName,
