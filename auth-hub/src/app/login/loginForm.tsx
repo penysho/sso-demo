@@ -134,7 +134,7 @@ export default function LoginForm() {
       </div>
 
       <div className="mt-4 text-center text-sm text-zinc-600">
-        認証ハブは、複数のサービスへのシングルサインオンを提供します
+        Auth Hubは、複数のサービスへのシングルサインオンを提供します
       </div>
     </div>
   );
