@@ -3,7 +3,7 @@ import { CfnApp, CfnBranch, CfnDomain } from "aws-cdk-lib/aws-amplify";
 import { BuildSpec } from "aws-cdk-lib/aws-codebuild";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { HostedZone } from "aws-cdk-lib/aws-route53";
-import { currentEnvConfig } from "../config/config";
+import { currentEnvConfig, deployEnv } from "../config/config";
 import { ElbStack } from "./elb";
 
 interface FrontendStackProps extends cdk.StackProps {
@@ -43,7 +43,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-api.pesh-igpjt.com`,
+          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -91,7 +91,7 @@ export class FrontendStack extends cdk.Stack {
 
     new CfnDomain(this, "Store2Domain", {
       appId: store2Amplify.attrAppId,
-      domainName: hostedZone.zoneName,
+      domainName: `sso-demo-${deployEnv}-store2.${hostedZone.zoneName}`,
       enableAutoSubDomain: true,
       subDomainSettings: [
         {
@@ -112,11 +112,11 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-api.pesh-igpjt.com`,
+          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
         },
         {
           name: "NEXT_PUBLIC_STORE2_URL",
-          value: `https://penysho.net`,
+          value: `https://sso-demo-${deployEnv}-store2.${hostedZone.zoneName}`,
         },
       ],
       repository: "https://github.com/penysho/sso-demo",
@@ -175,7 +175,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-api.pesh-igpjt.com`,
+          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -223,7 +223,7 @@ export class FrontendStack extends cdk.Stack {
 
     new CfnDomain(this, "AuthHubDomain", {
       appId: authHubAmplify.attrAppId,
-      domainName: "auth.penysho.net",
+      domainName: `sso-demo-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
       enableAutoSubDomain: true,
       subDomainSettings: [
         {
@@ -244,11 +244,11 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-api.pesh-igpjt.com`,
+          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
         },
         {
           name: "NEXT_PUBLIC_AUTH_HUB_URL",
-          value: `https://auth.penysho.net`,
+          value: `https://sso-demo-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
         },
       ],
       repository: "https://github.com/penysho/sso-demo",
