@@ -37,7 +37,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://${props.elbStack.LoadBalancer.loadBalancerDnsName}`,
+          value: `https://sso-demo-api.pesh-igpjt.com`,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -86,11 +86,11 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://${props.elbStack.LoadBalancer.loadBalancerDnsName}`,
+          value: `https://sso-demo-api.pesh-igpjt.com`,
         },
         {
           name: "NEXT_PUBLIC_STORE2_URL",
-          value: store2Amplify.attrDefaultDomain,
+          value: `https://${currentEnvConfig.branch}.${store2Amplify.attrDefaultDomain}`,
         },
       ],
       repository: "https://github.com/penysho/sso-demo",
@@ -137,12 +137,30 @@ export class FrontendStack extends cdk.Stack {
       stage: "PRODUCTION",
     });
 
-    new CfnBranch(this, "Store2Branch", {
+    const store2Branch = new CfnBranch(this, "Store2Branch", {
       appId: store2Amplify.attrAppId,
       branchName: currentEnvConfig.branch,
       framework: "Next.js - SSR",
       enableAutoBuild: false,
       stage: "PRODUCTION",
     });
+
+    // const hostedZone = HostedZone.fromHostedZoneId(
+    //   this,
+    //   "HostedZone",
+    //   currentEnvConfig.hostedZoneId
+    // );
+
+    // new CfnDomain(this, "Store2Domain", {
+    //   appId: store2Amplify.attrAppId,
+    //   domainName: hostedZone.zoneName,
+    //   enableAutoSubDomain: true,
+    //   subDomainSettings: [
+    //     {
+    //       prefix: "",
+    //       branchName: store2Branch.branchName,
+    //     },
+    //   ],
+    // });
   }
 }
