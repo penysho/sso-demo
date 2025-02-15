@@ -33,7 +33,7 @@ export default function HomePage() {
     const authHubLoginUrl = new URL("/login", authHubBaseUrl);
     authHubLoginUrl.searchParams.set("state", state);
     authHubLoginUrl.searchParams.set(
-      "redirect_url",
+      "redirect_uri",
       `${window.location.origin}/callback`
     );
 

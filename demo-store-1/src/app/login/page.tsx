@@ -46,7 +46,7 @@ export default function LoginPage() {
     const store2LoginUrl = new URL("/login", store2BaseUrl);
     store2LoginUrl.searchParams.set("state", state);
     store2LoginUrl.searchParams.set(
-      "redirect_url",
+      "redirect_uri",
       `${window.location.origin}/callback`
     );
 

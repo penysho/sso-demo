@@ -19,7 +19,7 @@ export default function LoginForm() {
   };
 
   const handleSSORedirect = useCallback(
-    async (state: string, redirectUrl: string) => {
+    async (state: string, redirectUri: string) => {
       try {
         const accessToken = getAccessToken();
         if (!accessToken) {
@@ -28,11 +28,11 @@ export default function LoginForm() {
 
         const authCode = await createSession(accessToken);
 
-        const finalRedirectUrl = new URL(redirectUrl);
-        finalRedirectUrl.searchParams.set("code", authCode);
-        finalRedirectUrl.searchParams.set("state", state);
+        const finalredirectUri = new URL(redirectUri);
+        finalredirectUri.searchParams.set("code", authCode);
+        finalredirectUri.searchParams.set("state", state);
 
-        window.location.href = finalRedirectUrl.toString();
+        window.location.href = finalredirectUri.toString();
       } catch (err) {
         console.error("Failed to handle SSO redirect:", err);
         setError("SSO処理中にエラーが発生しました");
@@ -46,10 +46,10 @@ export default function LoginForm() {
 
     if (hasValidToken) {
       const state = searchParams.get("state");
-      const redirectUrl = searchParams.get("redirect_url");
+      const redirectUri = searchParams.get("redirect_uri");
 
-      if (state && redirectUrl) {
-        handleSSORedirect(state, redirectUrl);
+      if (state && redirectUri) {
+        handleSSORedirect(state, redirectUri);
       } else {
         router.push("/");
       }
@@ -64,10 +64,10 @@ export default function LoginForm() {
         document.cookie = `${AUTH_TOKEN_KEY}=${AUTH_TOKEN_VALUE}; path=/`;
 
         const state = searchParams.get("state");
-        const redirectUrl = searchParams.get("redirect_url");
+        const redirectUri = searchParams.get("redirect_uri");
 
-        if (state && redirectUrl) {
-          await handleSSORedirect(state, redirectUrl);
+        if (state && redirectUri) {
+          await handleSSORedirect(state, redirectUri);
         } else {
           router.push("/");
         }

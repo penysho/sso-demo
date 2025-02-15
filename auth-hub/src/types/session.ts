@@ -8,7 +8,7 @@ export interface SessionError {
 
 export interface SSOParams {
   state: string;
-  redirect_url: string;
+  redirect_uri: string;
 }
 
 export interface APIError {
