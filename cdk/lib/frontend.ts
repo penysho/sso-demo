@@ -91,7 +91,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_STORE2_URL",
-          value: `https://${currentEnvConfig.branch}.${store2Amplify.attrDefaultDomain}`,
+          value: `https://penysho.net`,
         },
       ],
       repository: "https://github.com/penysho/sso-demo",
