@@ -1,6 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { CfnApp, CfnBranch, CfnDomain } from "aws-cdk-lib/aws-amplify";
 import { BuildSpec } from "aws-cdk-lib/aws-codebuild";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { HostedZone } from "aws-cdk-lib/aws-route53";
 import { currentEnvConfig } from "../config/config";
 import { ElbStack } from "./elb";
@@ -16,9 +17,19 @@ export class FrontendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
+    const amplifyRole = new iam.Role(this, "AmplifyRole", {
+      assumedBy: new iam.ServicePrincipal("amplify.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "AdministratorAccess-Amplify"
+        ),
+      ],
+    });
+
     const store2Amplify = new CfnApp(this, "Store2Amplify", {
       name: "demo-store-2",
       oauthToken: currentEnvConfig.githubToken,
+      iamServiceRole: amplifyRole.roleArn,
       repository: "https://github.com/penysho/sso-demo",
       environmentVariables: [
         {
@@ -68,6 +79,7 @@ export class FrontendStack extends cdk.Stack {
     const store1Amplify = new CfnApp(this, "Store1Amplify", {
       name: "demo-store-1",
       oauthToken: currentEnvConfig.githubToken,
+      iamServiceRole: amplifyRole.roleArn,
       environmentVariables: [
         {
           name: "AMPLIFY_MONOREPO_APP_ROOT",
