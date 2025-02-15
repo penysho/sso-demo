@@ -33,7 +33,7 @@ export class FrontendStack extends cdk.Stack {
 
     const store2Amplify = new CfnApp(this, "Store2Amplify", {
       name: "demo-store-2",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       iamServiceRole: amplifyRole.roleArn,
       repository: "https://github.com/penysho/sso-demo",
       environmentVariables: [
@@ -103,7 +103,7 @@ export class FrontendStack extends cdk.Stack {
 
     const store1Amplify = new CfnApp(this, "Store1Amplify", {
       name: "demo-store-1",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       iamServiceRole: amplifyRole.roleArn,
       environmentVariables: [
         {
@@ -165,7 +165,7 @@ export class FrontendStack extends cdk.Stack {
 
     const authHubAmplify = new CfnApp(this, "AuthHubAmplify", {
       name: "auth-hub",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       iamServiceRole: amplifyRole.roleArn,
       repository: "https://github.com/penysho/sso-demo",
       environmentVariables: [
@@ -235,7 +235,7 @@ export class FrontendStack extends cdk.Stack {
 
     const store3Amplify = new CfnApp(this, "Store3Amplify", {
       name: "demo-store-3",
-      oauthToken: currentEnvConfig.githubToken,
+      accessToken: currentEnvConfig.githubToken,
       iamServiceRole: amplifyRole.roleArn,
       environmentVariables: [
         {
