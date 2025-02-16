@@ -20,7 +20,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req model.SessionRequest
+	var req model.CreateSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -47,7 +47,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := model.SessionResponse{
+	resp := model.CreateSessionResponse{
 		AuthorizationCode: authCode,
 	}
 
@@ -62,18 +62,15 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetSession(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetSession")
+func GetSessionToken(w http.ResponseWriter, r *http.Request) {
+	log.Println("GetSessionToken")
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req struct {
-		AuthorizationCode string `json:"authorization_code"`
-	}
-
+	var req model.GetSessionTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -84,7 +81,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := store.GetSession(req.AuthorizationCode)
+	session, err := store.GetSession[model.Session](req.AuthorizationCode)
 	if err != nil {
 		if err.Error() == "session not found" {
 			http.Error(w, "Invalid authorization code", http.StatusUnauthorized)
@@ -99,7 +96,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := model.SessionTokenResponse{
+	resp := model.GetSessionTokenResponse{
 		AccessToken: session.AccessToken,
 	}
 

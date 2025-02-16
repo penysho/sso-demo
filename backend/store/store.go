@@ -1,10 +1,8 @@
 package store
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"backend/model"
@@ -12,22 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var (
-	redisClient *redis.Client
-	ctx         = context.Background()
-)
-
-func InitRedis() error {
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
-	})
-
-	return redisClient.Ping(ctx).Err()
-}
-
-func SaveSession(sessionID string, session model.Session) error {
+func SaveSession[T model.OidcSession | model.Session](sessionID string, session T) error {
 	sessionJSON, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -36,7 +19,7 @@ func SaveSession(sessionID string, session model.Session) error {
 	return redisClient.Set(ctx, "session:"+sessionID, sessionJSON, 24*time.Hour).Err()
 }
 
-func GetSession(sessionID string) (*model.Session, error) {
+func GetSession[T model.OidcSession | model.Session](sessionID string) (*T, error) {
 	if len(sessionID) != 64 {
 		return nil, fmt.Errorf("invalid session id format")
 	}
@@ -49,7 +32,7 @@ func GetSession(sessionID string) (*model.Session, error) {
 		return nil, err
 	}
 
-	var session model.Session
+	var session T
 	if err := json.Unmarshal([]byte(val), &session); err != nil {
 		return nil, err
 	}

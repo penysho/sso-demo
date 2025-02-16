@@ -2,11 +2,15 @@ package model
 
 import "time"
 
-type SessionRequest struct {
+type CreateSessionRequest struct {
 	AccessToken string `json:"access_token"`
 }
 
-type SessionResponse struct {
+type CreateSessionResponse struct {
+	AuthorizationCode string `json:"authorization_code"`
+}
+
+type GetSessionTokenRequest struct {
 	AuthorizationCode string `json:"authorization_code"`
 }
 
@@ -16,6 +20,6 @@ type Session struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
-type SessionTokenResponse struct {
+type GetSessionTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
