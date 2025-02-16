@@ -1,6 +1,6 @@
 "use client";
 
-import { ACCESS_TOKEN_KEY } from "@/constants/auth";
+import { ACCESS_TOKEN_KEY, ID_TOKEN_KEY } from "@/constants/auth";
 import { getSessionToken } from "@/utils/api";
 import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -39,13 +39,14 @@ export default function CallbackComponent() {
           return;
         }
 
-        const accessToken = await getSessionToken({
+        const { id_token, access_token } = await getSessionToken({
           authorization_code: code,
           code_verifier: savedCodeVerifier ?? "",
         });
 
         sessionStorage.removeItem("sso_state");
-        document.cookie = `${ACCESS_TOKEN_KEY}=${accessToken}; path=/`;
+        document.cookie = `${ID_TOKEN_KEY}=${id_token}; path=/`;
+        document.cookie = `${ACCESS_TOKEN_KEY}=${access_token}; path=/`;
 
         await wait(MIN_LOADING_TIME);
         router.push("/");
