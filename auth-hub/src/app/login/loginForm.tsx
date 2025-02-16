@@ -1,10 +1,35 @@
 "use client";
 
-import { AUTH_TOKEN_KEY, AUTH_TOKEN_VALUE } from "@/constants/auth";
-import { createSession } from "@/utils/api";
-import { checkAccessToken } from "@/utils/auth";
+import { ID_TOKEN_KEY, ID_TOKEN_VALUE } from "@/constants/auth";
+import { authorize } from "@/utils/api";
+import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+type SSOParams = {
+  state: string;
+  redirectUri: string;
+  codeChallenge: string;
+  codeChallengeMethod: string;
+};
+
+const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
+  return {
+    state: searchParams.get("state") ?? "",
+    redirectUri: searchParams.get("redirect_uri") ?? "",
+    codeChallenge: searchParams.get("code_challenge") ?? "",
+    codeChallengeMethod: searchParams.get("code_challenge_method") ?? "",
+  };
+};
+
+const isSSOParamsValid = (ssoParams: SSOParams): boolean => {
+  return !!(
+    ssoParams.state &&
+    ssoParams.redirectUri &&
+    ssoParams.codeChallenge &&
+    ssoParams.codeChallengeMethod
+  );
+};
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -13,26 +38,34 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const getAccessToken = (): string | undefined => {
+  const getIDToken = (): string | undefined => {
     return document.cookie
       .split("; ")
-      .find((row) => row.startsWith(`${AUTH_TOKEN_KEY}=`))
+      .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
       ?.split("=")[1];
   };
 
   const handleSSORedirect = useCallback(
-    async (state: string, redirectUri: string) => {
+    async (ssoParams: SSOParams) => {
       try {
-        const accessToken = getAccessToken();
-        if (!accessToken) {
-          throw new Error("Access token not found");
+        const idToken = getIDToken();
+        if (!idToken) {
+          throw new Error("ID Token not found");
         }
 
-        const authCode = await createSession(accessToken);
+        const authCode = await authorize(
+          {
+            // TODO: クライアントIDを取得する
+            client_id: "dummy_client_id",
+            redirect_uri: ssoParams.redirectUri,
+            code_challenge: ssoParams.codeChallenge,
+          },
+          idToken
+        );
 
-        const finalredirectUri = new URL(redirectUri);
+        const finalredirectUri = new URL(ssoParams.redirectUri);
         finalredirectUri.searchParams.set("code", authCode);
-        finalredirectUri.searchParams.set("state", state);
+        finalredirectUri.searchParams.set("state", ssoParams.state);
 
         window.location.href = finalredirectUri.toString();
       } catch (err) {
@@ -44,14 +77,13 @@ export default function LoginForm() {
   );
 
   useEffect(() => {
-    const hasValidToken = checkAccessToken();
+    const hasValidToken = checkIDToken();
 
     if (hasValidToken) {
-      const state = searchParams.get("state");
-      const redirectUri = searchParams.get("redirect_uri");
+      const ssoParams = getSSOParams(searchParams);
 
-      if (state && redirectUri) {
-        handleSSORedirect(state, redirectUri);
+      if (isSSOParamsValid(ssoParams)) {
+        handleSSORedirect(ssoParams);
       } else {
         router.push("/");
       }
@@ -63,13 +95,12 @@ export default function LoginForm() {
 
     try {
       if (email !== "" && password !== "") {
-        document.cookie = `${AUTH_TOKEN_KEY}=${AUTH_TOKEN_VALUE}; path=/`;
+        document.cookie = `${ID_TOKEN_KEY}=${ID_TOKEN_VALUE}; path=/`;
 
-        const state = searchParams.get("state");
-        const redirectUri = searchParams.get("redirect_uri");
+        const ssoParams = getSSOParams(searchParams);
 
-        if (state && redirectUri) {
-          await handleSSORedirect(state, redirectUri);
+        if (isSSOParamsValid(ssoParams)) {
+          await handleSSORedirect(ssoParams);
         } else {
           router.push("/");
         }

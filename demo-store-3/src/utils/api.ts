@@ -1,4 +1,4 @@
-import { SessionTokenResponse } from "@/types/session";
+import { SessionTokenRequest, SessionTokenResponse } from "@/types/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -7,16 +7,14 @@ if (!API_URL) {
 }
 
 export async function getSessionToken(
-  authorizationCode: string
-): Promise<string> {
-  const response = await fetch(`${API_URL}/api/sessions/token`, {
+  request: SessionTokenRequest
+): Promise<SessionTokenResponse> {
+  const response = await fetch(`${API_URL}/api/oauth/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      authorization_code: authorizationCode,
-    }),
+    body: JSON.stringify(request),
   });
 
   if (!response.ok) {
@@ -26,6 +24,5 @@ export async function getSessionToken(
     throw new Error(error.message || "Failed to get session token");
   }
 
-  const data = (await response.json()) as SessionTokenResponse;
-  return data.access_token;
+  return (await response.json()) as SessionTokenResponse;
 }

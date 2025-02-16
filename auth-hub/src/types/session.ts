@@ -1,3 +1,9 @@
+export interface SessionRequest {
+  client_id: string;
+  redirect_uri: string;
+  code_challenge: string;
+}
+
 export interface SessionResponse {
   authorization_code: string;
 }

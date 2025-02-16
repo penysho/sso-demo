@@ -1,8 +1,8 @@
 "use client";
 
-import { AUTH_TOKEN_KEY } from "@/constants/auth";
+import { ACCESS_TOKEN_KEY } from "@/constants/auth";
 import { getSessionToken } from "@/utils/api";
-import { checkAccessToken } from "@/utils/auth";
+import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -16,7 +16,7 @@ export default function CallbackComponent() {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    if (checkAccessToken()) {
+    if (checkIDToken()) {
       router.push("/");
       return;
     }
@@ -27,6 +27,7 @@ export default function CallbackComponent() {
         const state = searchParams.get("state");
 
         const savedState = sessionStorage.getItem("sso_state");
+        const savedCodeVerifier = sessionStorage.getItem("sso_code_verifier");
 
         if (!code || !state) {
           setError("必要なパラメータが不足しています");
@@ -38,10 +39,13 @@ export default function CallbackComponent() {
           return;
         }
 
-        const accessToken = await getSessionToken(code);
+        const accessToken = await getSessionToken({
+          authorization_code: code,
+          code_verifier: savedCodeVerifier ?? "",
+        });
 
         sessionStorage.removeItem("sso_state");
-        document.cookie = `${AUTH_TOKEN_KEY}=${accessToken}; path=/`;
+        document.cookie = `${ACCESS_TOKEN_KEY}=${accessToken}; path=/`;
 
         await wait(MIN_LOADING_TIME);
         router.push("/");

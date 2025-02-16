@@ -1,28 +1,31 @@
 "use client";
 
-import { AUTH_TOKEN_KEY } from "@/constants/auth";
-import { generateState } from "@/utils/auth";
+import { ACCESS_TOKEN_KEY, ID_TOKEN_KEY } from "@/constants/auth";
+import { generateChallenge, generateState } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const ACCESS_TOKEN_KEY = "store3_access_token";
-
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [, setAccessToken] = useState<string>("");
+  const [, setIDToken] = useState<string>("");
   const router = useRouter();
 
   useEffect(() => {
     const cookies = document.cookie.split(";");
-    const hasToken = cookies.some((cookie) =>
-      cookie.trim().startsWith(`${ACCESS_TOKEN_KEY}=`)
-    );
+    const hasToken =
+      cookies.some((cookie) => cookie.trim().startsWith(`${ID_TOKEN_KEY}=`)) &&
+      cookies.some((cookie) =>
+        cookie.trim().startsWith(`${ACCESS_TOKEN_KEY}=`)
+      );
     setIsLoggedIn(hasToken);
   }, []);
 
-  const handleAuthHubLogin = () => {
+  const handleAuthHubLogin = async () => {
     const state = generateState();
     sessionStorage.setItem("sso_state", state);
+    const { codeVerifier, codeChallenge } = await generateChallenge();
+    sessionStorage.setItem("sso_code_verifier", codeVerifier);
+    sessionStorage.setItem("sso_code_challenge", codeChallenge);
 
     const authHubBaseUrl = process.env.NEXT_PUBLIC_AUTH_HUB_URL;
     if (!authHubBaseUrl) {
@@ -36,14 +39,17 @@ export default function HomePage() {
       "redirect_uri",
       `${window.location.origin}/callback`
     );
+    authHubLoginUrl.searchParams.set("code_challenge", codeChallenge);
+    authHubLoginUrl.searchParams.set("code_challenge_method", "S256");
 
     window.location.href = authHubLoginUrl.toString();
   };
 
   const handleLogout = () => {
-    document.cookie = `${AUTH_TOKEN_KEY}=; path=/; max-age=0`;
+    document.cookie = `${ID_TOKEN_KEY}=; path=/; max-age=0`;
+    document.cookie = `${ACCESS_TOKEN_KEY}=; path=/; max-age=0`;
     setIsLoggedIn(false);
-    setAccessToken("");
+    setIDToken("");
     router.push("/");
   };
 

@@ -5,7 +5,6 @@ import "time"
 type OidcAuthorizeRequest struct {
 	ClientID      string `json:"client_id"`
 	RedirectURI   string `json:"redirect_uri"`
-	State         string `json:"state"`
 	CodeChallenge string `json:"code_challenge"`
 }
 
@@ -24,6 +23,7 @@ type OidcSession struct {
 
 type OidcTokenRequest struct {
 	AuthorizationCode string `json:"authorization_code"`
+	CodeVerifier      string `json:"code_verifier"`
 }
 
 type OidcTokenResponse struct {

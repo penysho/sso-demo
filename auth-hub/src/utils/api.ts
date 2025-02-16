@@ -1,4 +1,4 @@
-import { SessionResponse } from "@/types/session";
+import { SessionRequest, SessionResponse } from "@/types/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -6,13 +6,21 @@ if (!API_URL) {
   throw new Error("API_URL is not defined");
 }
 
-export async function createSession(accessToken: string): Promise<string> {
-  const response = await fetch(`${API_URL}/api/sessions`, {
+export async function authorize(
+  request: SessionRequest,
+  idToken: string
+): Promise<string> {
+  const response = await fetch(`${API_URL}/api/oauth/authorize`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ access_token: accessToken }),
+    body: JSON.stringify({
+      client_id: request.client_id,
+      redirect_uri: request.redirect_uri,
+      code_challenge: request.code_challenge,
+    }),
   });
 
   if (!response.ok) {

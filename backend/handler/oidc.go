@@ -5,6 +5,8 @@ import (
 	"backend/model"
 	"backend/store"
 	"backend/utils"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -37,7 +39,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.ClientID == "" || req.RedirectURI == "" || req.State == "" || req.CodeChallenge == "" {
+	if req.ClientID == "" || req.RedirectURI == "" || req.CodeChallenge == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -92,13 +94,6 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken := r.Header.Get("Authorization")
-	if idToken == "" {
-		http.Error(w, "Missing authorization header", http.StatusUnauthorized)
-		return
-	}
-	idToken = strings.TrimPrefix(idToken, "Bearer ")
-
 	var req model.OidcTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -109,6 +104,10 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
 		return
 	}
+	if req.CodeVerifier == "" {
+		http.Error(w, "Missing code verifier", http.StatusBadRequest)
+		return
+	}
 
 	session, err := store.GetSession[model.OidcSession](req.AuthorizationCode)
 	if err != nil {
@@ -116,8 +115,10 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.IDToken != idToken {
-		http.Error(w, "Invalid ID token", http.StatusBadRequest)
+	codeVerifierHash := sha256.Sum256([]byte(req.CodeVerifier))
+	codeVerifierHashString := hex.EncodeToString(codeVerifierHash[:])
+	if codeVerifierHashString != session.CodeChallenge {
+		http.Error(w, "Invalid code verifier", http.StatusBadRequest)
 		return
 	}
 
