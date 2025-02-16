@@ -21,11 +21,6 @@ type OidcSession struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
-type OidcTokenRequest struct {
-	AuthorizationCode string `json:"authorization_code"`
-	CodeVerifier      string `json:"code_verifier"`
-}
-
 type OidcTokenResponse struct {
 	IDToken     string `json:"id_token"`
 	AccessToken string `json:"access_token"`

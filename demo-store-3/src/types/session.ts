@@ -1,5 +1,5 @@
 export interface SessionTokenRequest {
-  authorization_code: string;
+  code: string;
   code_verifier: string;
 }
 

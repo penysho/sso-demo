@@ -10,17 +10,18 @@ export async function authorize(
   request: SessionRequest,
   idToken: string
 ): Promise<string> {
-  const response = await fetch(`${API_URL}/api/oauth/authorize`, {
-    method: "POST",
+  const url = new URL(`${API_URL}/api/oauth/authorize`);
+
+  // クエリパラメータの設定
+  url.searchParams.set("client_id", request.client_id);
+  url.searchParams.set("redirect_uri", request.redirect_uri);
+  url.searchParams.set("code_challenge", request.code_challenge);
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({
-      client_id: request.client_id,
-      redirect_uri: request.redirect_uri,
-      code_challenge: request.code_challenge,
-    }),
   });
 
   if (!response.ok) {

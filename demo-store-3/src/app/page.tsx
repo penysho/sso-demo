@@ -41,7 +41,7 @@ export default function HomePage() {
     );
     authHubLoginUrl.searchParams.set("code_challenge", codeChallenge);
     authHubLoginUrl.searchParams.set("code_challenge_method", "S256");
-
+    authHubLoginUrl.searchParams.set("client_id", "store3");
     window.location.href = authHubLoginUrl.toString();
   };
 

@@ -40,11 +40,13 @@ export default function CallbackComponent() {
         }
 
         const { id_token, access_token } = await getSessionToken({
-          authorization_code: code,
+          code,
           code_verifier: savedCodeVerifier ?? "",
         });
 
         sessionStorage.removeItem("sso_state");
+        sessionStorage.removeItem("sso_code_verifier");
+        sessionStorage.removeItem("sso_code_challenge");
         document.cookie = `${ID_TOKEN_KEY}=${id_token}; path=/`;
         document.cookie = `${ACCESS_TOKEN_KEY}=${access_token}; path=/`;
 

@@ -12,9 +12,17 @@ export async function getSessionToken(
   const response = await fetch(`${API_URL}/api/oauth/token`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: JSON.stringify(request),
+    body: new URLSearchParams(
+      Object.entries(request).reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: String(value),
+        }),
+        {}
+      )
+    ).toString(),
   });
 
   if (!response.ok) {

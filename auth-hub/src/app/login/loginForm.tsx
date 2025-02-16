@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 type SSOParams = {
+  clientId: string;
   state: string;
   redirectUri: string;
   codeChallenge: string;
@@ -15,6 +16,7 @@ type SSOParams = {
 
 const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
   return {
+    clientId: searchParams.get("client_id") ?? "",
     state: searchParams.get("state") ?? "",
     redirectUri: searchParams.get("redirect_uri") ?? "",
     codeChallenge: searchParams.get("code_challenge") ?? "",
@@ -55,8 +57,7 @@ export default function LoginForm() {
 
         const authCode = await authorize(
           {
-            // TODO: クライアントIDを取得する
-            client_id: "dummy_client_id",
+            client_id: ssoParams.clientId,
             redirect_uri: ssoParams.redirectUri,
             code_challenge: ssoParams.codeChallenge,
           },

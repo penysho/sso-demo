@@ -17,7 +17,7 @@ import (
 func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	log.Println("OidcAuthorize")
 
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -33,18 +33,16 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req model.OidcAuthorizeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
+	clientID := r.URL.Query().Get("client_id")
+	redirectURI := r.URL.Query().Get("redirect_uri")
+	codeChallenge := r.URL.Query().Get("code_challenge")
 
-	if req.ClientID == "" || req.RedirectURI == "" || req.CodeChallenge == "" {
+	if clientID == "" || redirectURI == "" || codeChallenge == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
-	// if req.ClientID != config.ClientID {
+	// if clientID != config.ClientID {
 	// 	http.Error(w, "Invalid client ID", http.StatusBadRequest)
 	// 	return
 	// }
@@ -59,8 +57,8 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		AuthorizationCode: authCode,
 		IDToken:           idToken,
 		AccessToken:       "dummy_access_token",
-		ClientID:          req.ClientID,
-		CodeChallenge:     req.CodeChallenge,
+		ClientID:          clientID,
+		CodeChallenge:     codeChallenge,
 		CreatedAt:         time.Now(),
 	}
 
@@ -75,8 +73,8 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
@@ -94,28 +92,30 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req model.OidcTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	if req.AuthorizationCode == "" {
+	authCode := r.PostForm.Get("code")
+	codeVerifier := r.PostForm.Get("code_verifier")
+
+	if authCode == "" {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
 		return
 	}
-	if req.CodeVerifier == "" {
+	if codeVerifier == "" {
 		http.Error(w, "Missing code verifier", http.StatusBadRequest)
 		return
 	}
 
-	session, err := store.GetSession[model.OidcSession](req.AuthorizationCode)
+	session, err := store.GetSession[model.OidcSession](authCode)
 	if err != nil {
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
 		return
 	}
 
-	codeVerifierHash := sha256.Sum256([]byte(req.CodeVerifier))
+	codeVerifierHash := sha256.Sum256([]byte(codeVerifier))
 	codeVerifierHashString := hex.EncodeToString(codeVerifierHash[:])
 	if codeVerifierHashString != session.CodeChallenge {
 		http.Error(w, "Invalid code verifier", http.StatusBadRequest)
@@ -130,7 +130,7 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
