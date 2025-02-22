@@ -123,6 +123,7 @@ export class CiStack extends cdk.Stack {
       ),
     });
 
+    // For push image to ECR
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ["ecr:GetAuthorizationToken"],
@@ -130,7 +131,6 @@ export class CiStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
       })
     );
-
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: [
@@ -147,6 +147,7 @@ export class CiStack extends cdk.Stack {
       })
     );
 
+    // For deploy application by CodeDeploy
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: [
@@ -160,7 +161,6 @@ export class CiStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
       })
     );
-
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: [
@@ -176,7 +176,6 @@ export class CiStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
       })
     );
-
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ["iam:PassRole"],
@@ -187,6 +186,26 @@ export class CiStack extends cdk.Stack {
             "iam:PassedToService": ["ecs-tasks.amazonaws.com"],
           },
         },
+      })
+    );
+
+    // For deploy infrastructure by CDK
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["cloudformation:*"],
+        resources: ["*"],
+      })
+    );
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["sts:AssumeRole"],
+        resources: [
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-deploy-role-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-file-publishing-role-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-image-publishing-role-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-lookup-role-${this.region}`,
+        ],
+        effect: iam.Effect.ALLOW,
       })
     );
   }
