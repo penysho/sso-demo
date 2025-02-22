@@ -16,9 +16,11 @@ const envProps = {
   region: process.env.CDK_DEFAULT_REGION,
 };
 
-// Get Secret from context
+// Get Value from context
 const githubToken = app.node.tryGetContext("githubToken");
 currentEnvConfig.githubToken = githubToken;
+const backendImageTag = app.node.tryGetContext("backendImageTag");
+currentEnvConfig.backendImageTag = backendImageTag;
 
 // Define Stacks
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});

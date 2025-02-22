@@ -20,6 +20,7 @@ export const deployEnv: EnvCode = getDeployEnv();
 
 // Define different settings for each deployment environment in the project.
 export interface EnvConfig {
+  backendImageTag: string;
   apiDomainHostedZoneId: string;
   frontendDomainHostedZoneId: string;
   certificateArn: string;
@@ -30,6 +31,7 @@ export interface EnvConfig {
 
 export const envConfig: Record<EnvCode, EnvConfig> = {
   dev: {
+    backendImageTag: "latest",
     apiDomainHostedZoneId: "Z1022019Y95GQ6B89EE1",
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:
@@ -39,6 +41,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     githubToken: "",
   },
   tst: {
+    backendImageTag: "latest",
     apiDomainHostedZoneId: "Z1022019Y95GQ6B89EE1",
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:
@@ -48,6 +51,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     githubToken: "",
   },
   prd: {
+    backendImageTag: "latest",
     apiDomainHostedZoneId: "Z1022019Y95GQ6B89EE1",
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:

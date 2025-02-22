@@ -186,7 +186,9 @@ export class BackendStack extends cdk.Stack {
     new ecrdeploy.ECRDeployment(this, "DeployDockerImage", {
       src: new ecrdeploy.DockerImageName(dockerImageAsset.imageUri),
       dest: new ecrdeploy.DockerImageName(
-        [this.repository.repositoryUri, "latest"].join(":")
+        [this.repository.repositoryUri, currentEnvConfig.backendImageTag].join(
+          ":"
+        )
       ),
     });
 
@@ -236,7 +238,10 @@ export class BackendStack extends cdk.Stack {
     );
     const container = taskDefinition.addContainer(containerName, {
       containerName,
-      image: ecs.ContainerImage.fromEcrRepository(this.repository, "latest"),
+      image: ecs.ContainerImage.fromEcrRepository(
+        this.repository,
+        currentEnvConfig.backendImageTag
+      ),
       essential: true,
       portMappings: [
         {
