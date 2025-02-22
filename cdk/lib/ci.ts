@@ -209,10 +209,10 @@ export class CiStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ["sts:AssumeRole"],
         resources: [
-          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-deploy-role-${this.region}`,
-          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-file-publishing-role-${this.region}`,
-          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-image-publishing-role-${this.region}`,
-          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-lookup-role-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-deploy-role-${this.account}-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-file-publishing-role-${this.account}-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-image-publishing-role-${this.account}-${this.region}`,
+          `arn:aws:iam::${this.account}:role/cdk-hnb659fds-lookup-role-${this.account}-${this.region}`,
         ],
         effect: iam.Effect.ALLOW,
       })
