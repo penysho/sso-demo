@@ -126,7 +126,11 @@ export class CiStack extends cdk.Stack {
     // For push image to ECR
     role.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["ecr:GetAuthorizationToken"],
+        actions: [
+          "ecr:GetAuthorizationToken",
+          // Specific to ecr-deployment
+          "ecr:DescribeRepositories",
+        ],
         resources: ["*"],
         effect: iam.Effect.ALLOW,
       })
@@ -141,8 +145,6 @@ export class CiStack extends cdk.Stack {
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
-          // Specific to ecr-deployment
-          "ecr:DescribeRepositories",
         ],
         resources: [props.backendStack.repository.repositoryArn],
         effect: iam.Effect.ALLOW,

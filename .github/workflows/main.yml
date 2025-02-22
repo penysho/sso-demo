@@ -47,15 +47,16 @@ jobs:
           cd cdk
           npm install
 
-      # - name: Get latest image tag
-      #   env:
-      #     ECR_REPOSITORY_NAME: ${{ inputs.environment }}-backend
-      #   run: |
-      #     aws ecr describe-images \
-      #       --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
-      #       --region ap-northeast-1 \
-      #       --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
-      #       --output text
+      - name: Get latest image tag
+        env:
+          ECR_REPOSITORY_NAME: sso-demo-${{ inputs.environment }}
+        run: |
+          export latest_image_tag=$(aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
+            --region ap-northeast-1 \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+            --output text)
+            echo "latest_image_tag=${latest_image_tag}" >> $GITHUB_ENV
 
       - name: CDK Deploy
         run: |
