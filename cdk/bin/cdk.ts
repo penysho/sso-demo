@@ -21,6 +21,8 @@ const githubToken = app.node.tryGetContext("githubToken");
 currentEnvConfig.githubToken = githubToken;
 const backendImageTag = app.node.tryGetContext("backendImageTag");
 currentEnvConfig.backendImageTag = backendImageTag;
+const isApplicationDeploy = app.node.tryGetContext("isApplicationDeploy");
+currentEnvConfig.isApplicationDeploy = isApplicationDeploy;
 
 // Define Stacks
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});

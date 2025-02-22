@@ -174,25 +174,28 @@ export class BackendStack extends cdk.Stack {
       emptyOnDelete: true,
     });
 
-    const dockerImageAsset = new DockerImageAsset(this, "DockerImageAsset", {
-      directory: path.join(__dirname, "../.."),
-      buildArgs: {
-        CGO_ENABLED: "0",
-        GOOS: "linux",
-        GOARCH: "amd64",
-      },
-      file: "backend/docker/Dockerfile.remote",
-      platform: Platform.LINUX_AMD64,
-    });
+    if (currentEnvConfig.isApplicationDeploy) {
+      const dockerImageAsset = new DockerImageAsset(this, "DockerImageAsset", {
+        directory: path.join(__dirname, "../.."),
+        buildArgs: {
+          CGO_ENABLED: "0",
+          GOOS: "linux",
+          GOARCH: "amd64",
+        },
+        file: "backend/docker/Dockerfile.remote",
+        platform: Platform.LINUX_AMD64,
+      });
 
-    new ecrdeploy.ECRDeployment(this, "DeployDockerImage", {
-      src: new ecrdeploy.DockerImageName(dockerImageAsset.imageUri),
-      dest: new ecrdeploy.DockerImageName(
-        [this.repository.repositoryUri, currentEnvConfig.backendImageTag].join(
-          ":"
-        )
-      ),
-    });
+      new ecrdeploy.ECRDeployment(this, "DeployDockerImage", {
+        src: new ecrdeploy.DockerImageName(dockerImageAsset.imageUri),
+        dest: new ecrdeploy.DockerImageName(
+          [
+            this.repository.repositoryUri,
+            currentEnvConfig.backendImageTag,
+          ].join(":")
+        ),
+      });
+    }
 
     // Log Group
     const logGroup = new logs.LogGroup(this, "LogGroup", {
