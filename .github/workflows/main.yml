@@ -1,4 +1,4 @@
-name: Application and Infrastructure Deployment
+name: Deployment with CDK
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
         description: "Environment to deploy to"
         required: true
         type: choice
+        default: "tst"
         options:
           - dev
           - tst
@@ -41,8 +42,8 @@ jobs:
         with:
           node-version: 22.8
 
-      - name: Setup dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: npm install
 
       - name: CDK Deploy
         run: |

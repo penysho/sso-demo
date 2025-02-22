@@ -2,7 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { deployEnv, projectName } from "../config/config";
 import { BackendStack } from "./backend";
 
 interface CiStackProps extends cdk.StackProps {
@@ -116,7 +116,7 @@ export class CiStack extends cdk.Stack {
             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
           },
           StringLike: {
-            [`token.actions.githubusercontent.com:sub`]: `repo:penysho/${projectName}:ref:refs/heads/${currentEnvConfig.branch}`,
+            [`token.actions.githubusercontent.com:sub`]: `repo:penysho/${projectName}:*`,
           },
         },
         "sts:AssumeRoleWithWebIdentity"
