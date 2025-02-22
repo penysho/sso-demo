@@ -49,6 +49,7 @@
     // Git
     "mhutchie.git-graph",
     "eamodio.gitlens",
+    "github.vscode-github-actions",
     // Common
     "ms-ceintl.vscode-language-pack-ja",
     "visualstudioexptteam.vscodeintellicode",
