@@ -130,6 +130,7 @@ export class CiStack extends cdk.Stack {
           "ecr:GetAuthorizationToken",
           // Specific to cdk-ecr-deployment
           "ecr:DescribeRepositories",
+          "ecr:DescribeImages",
         ],
         resources: ["*"],
         effect: iam.Effect.ALLOW,
@@ -145,10 +146,12 @@ export class CiStack extends cdk.Stack {
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
-          // Specific to cdk-ecr-deployment
-          "ecr:DescribeImages",
         ],
-        resources: [props.backendStack.repository.repositoryArn],
+        resources: [
+          props.backendStack.repository.repositoryArn,
+          // Specific to cdk-ecr-deployment
+          `arn:aws:ecr:ap-northeast-1:${this.account}:repository/cdk-hnb659fds-container-assets-${this.account}-${this.region}`,
+        ],
         effect: iam.Effect.ALLOW,
       })
     );
