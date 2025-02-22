@@ -128,7 +128,7 @@ export class CiStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: [
           "ecr:GetAuthorizationToken",
-          // Specific to ecr-deployment
+          // Specific to cdk-ecr-deployment
           "ecr:DescribeRepositories",
         ],
         resources: ["*"],
@@ -145,6 +145,8 @@ export class CiStack extends cdk.Stack {
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
+          // Specific to cdk-ecr-deployment
+          "ecr:DescribeImages",
         ],
         resources: [props.backendStack.repository.repositoryArn],
         effect: iam.Effect.ALLOW,
