@@ -2,4 +2,6 @@ cdk
 redis
 demo-store-1
 demo-store-2
+demo-store-3
+auth-hub
 .vscode

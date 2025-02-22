@@ -192,7 +192,7 @@ export class CiStack extends cdk.Stack {
     // For deploy infrastructure by CDK
     role.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["cloudformation:*"],
+        actions: ["cloudformation:*", "ssm:GetParameter"],
         resources: ["*"],
       })
     );
