@@ -67,4 +67,4 @@ jobs:
       - name: CDK Deploy
         run: |
           cd cdk
-          npx cdk deploy --all --require-approval never --githubToken ${{ secrets.AMPLIFY_GITHUB_TOKEN }} --backendImageTag ${{ env.BACKEND_IMAGE_TAG }} --isApplicationDeploy ${{ inputs.is_application_deploy }}
+          npx cdk deploy --all --require-approval never -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c isApplicationDeploy=${{ inputs.is_application_deploy }}
