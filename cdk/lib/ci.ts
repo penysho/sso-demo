@@ -141,6 +141,8 @@ export class CiStack extends cdk.Stack {
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
+          // Specific to ecr-deployment
+          "ecr:DescribeRepositories",
         ],
         resources: [props.backendStack.repository.repositoryArn],
         effect: iam.Effect.ALLOW,
