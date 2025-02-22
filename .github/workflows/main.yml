@@ -43,8 +43,11 @@ jobs:
           node-version: 22.8
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd cdk
+          npm install
 
       - name: CDK Deploy
         run: |
+          cd cdk
           npx cdk deploy --all --require-approval never --githubToken ${{ secrets.AMPLIFY_GITHUB_TOKEN }} --backendImageTag ${{ github.sha }}
