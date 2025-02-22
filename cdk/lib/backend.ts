@@ -155,7 +155,9 @@ export class BackendStack extends cdk.Stack {
     });
 
     // Cluster
-    this.cluster = new ecs.Cluster(this, "Cluster", {});
+    this.cluster = new ecs.Cluster(this, "Cluster", {
+      vpc,
+    });
 
     // ECR
     this.repository = new ecr.Repository(this, "Repository", {

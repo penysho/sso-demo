@@ -104,7 +104,6 @@ export class CiStack extends cdk.Stack {
       {
         url: "https://token.actions.githubusercontent.com",
         clientIds: ["sts.amazonaws.com"],
-        thumbprints: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
       }
     );
 
