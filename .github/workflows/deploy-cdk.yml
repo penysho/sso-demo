@@ -71,10 +71,24 @@ jobs:
 
   deploy-application:
     name: Deploy application
+    needs: deploy-cdk
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
       - name: Get current ECS Cluster info
         run: |
           export BACKEND_CLUSTER_NAME=$(aws ecs list-clusters --region ap-northeast-1 --query 'clusters[0]' --output text)
