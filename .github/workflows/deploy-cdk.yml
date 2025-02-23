@@ -1,4 +1,4 @@
-name: Deployment with CDK
+name: Infrastructure and Application Deployment
 
 on:
   workflow_dispatch:
@@ -18,8 +18,8 @@ on:
         default: true
 
 jobs:
-  push:
-    name: Deploy
+  deploy-cdk:
+    name: Deploy CDK
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
 
@@ -69,6 +69,12 @@ jobs:
           cd cdk
           npx cdk deploy --all --require-approval never -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c isApplicationDeploy=${{ inputs.is_application_deploy }}
 
+  deploy-application:
+    name: Deploy application
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
       - name: Get current ECS Cluster info
         run: |
           export BACKEND_CLUSTER_NAME=$(aws ecs list-clusters --region ap-northeast-1 --query 'clusters[0]' --output text)

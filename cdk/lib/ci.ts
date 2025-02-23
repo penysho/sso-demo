@@ -165,6 +165,9 @@ export class CiStack extends cdk.Stack {
           "ecs:DescribeTasks",
           "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
+          // To dynamically retrieve cluster information in CI
+          "ecs:ListClusters",
+          "ecs:ListServices",
         ],
         resources: ["*"],
         effect: iam.Effect.ALLOW,
