@@ -157,6 +157,7 @@ export class BackendStack extends cdk.Stack {
     // Cluster
     this.cluster = new ecs.Cluster(this, "Cluster", {
       vpc,
+      clusterName: `${projectName}-${deployEnv}`,
     });
 
     // ECR
@@ -239,6 +240,7 @@ export class BackendStack extends cdk.Stack {
         cpu: 256,
         memoryLimitMiB: 512,
         executionRole: taskExecutionRole,
+        family: `${projectName}-backend-${deployEnv}`,
       }
     );
     const container = taskDefinition.addContainer(containerName, {
@@ -266,6 +268,7 @@ export class BackendStack extends cdk.Stack {
     // Service
     const service = new ecs.FargateService(this, "Service", {
       cluster: this.cluster,
+      serviceName: `${projectName}-backend-${deployEnv}`,
       taskDefinition,
       desiredCount: 1,
       deploymentController: {

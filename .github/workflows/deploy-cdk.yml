@@ -83,27 +83,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ap-northeast-1
-          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-
-      - name: Get current ECS Cluster info
-        run: |
-          export BACKEND_CLUSTER_NAME=$(aws ecs list-clusters --region ap-northeast-1 --query 'clusters[0]' --output text)
-          export BACKEND_SERVICE_NAME=$(aws ecs list-services --region ap-northeast-1 --cluster ${{ env.BACKEND_CLUSTER_NAME }} --query 'services[0]' --output text)
-          export BACKEND_TASK_DEFINITION=$(aws ecs describe-task-definition --region ap-northeast-1 --task-definition ${{ env.BACKEND_SERVICE_NAME }} --query 'taskDefinition.family' --output text)
-          echo "BACKEND_CLUSTER_NAME=${BACKEND_CLUSTER_NAME}" >> $GITHUB_ENV
-          echo "BACKEND_SERVICE_NAME=${BACKEND_SERVICE_NAME}" >> $GITHUB_ENV
-          echo "BACKEND_TASK_DEFINITION=${BACKEND_TASK_DEFINITION}" >> $GITHUB_ENV
-
       - name: Deploy app with CodeDeploy Blue/Green deployment
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ env.BACKEND_TASK_DEFINITION }}
-          cluster: ${{ env.BACKEND_CLUSTER_NAME }}
-          service: ${{ env.BACKEND_SERVICE_NAME }}
+          task-definition: sso-demo-backend-${{ inputs.environment }}
+          cluster: sso-demo-${{ inputs.environment }}
+          service: sso-demo-backend-${{ inputs.environment }}
           codedeploy-appspec: codedeploy/appspec.yml
           codedeploy-application: sso-demo-backend-${{ inputs.environment }}
           codedeploy-deployment-group: sso-demo-backend-${{ inputs.environment }}-group1
