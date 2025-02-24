@@ -102,12 +102,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fetch TaskDefinition ARN
+        run: |
+          export task_definition_arn=$(aws ecs list-task-definitions \
+          --family-prefix sso-demo-backend-${{ inputs.environment }} \
+          --sort DESC \
+          --query 'taskDefinitionArns[0]' \
+          --output text)
+          echo "TASK_DEFINITION_ARN=${task_definition_arn}" >> $GITHUB_ENV
+
       - name: Deploy app with CodeDeploy Blue/Green deployment
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: sso-demo-backend-${{ inputs.environment }}
-          cluster: sso-demo-${{ inputs.environment }}
-          service: sso-demo-backend-${{ inputs.environment }}
-          codedeploy-appspec: codedeploy/appspec.yml
-          codedeploy-application: sso-demo-backend-${{ inputs.environment }}
-          codedeploy-deployment-group: sso-demo-backend-${{ inputs.environment }}-group1
+        run: |
+          aws deploy create-deployment \
+          --application-name sso-demo-${{ inputs.environment }} \
+          --deployment-group-name sso-demo-${{ inputs.environment }}-group1 \
+          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"backend\",\"ContainerPort\":8080}}}}]}"}}' \
+          --region ap-northeast-1
