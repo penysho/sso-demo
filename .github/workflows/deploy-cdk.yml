@@ -49,8 +49,8 @@ jobs:
         env:
           cache-name: cache-cdk-dependency
         with:
-          path: node_modules
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('package-lock.json') }}
+          path: cdk/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('cdk/package-lock.json') }}
           restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - name: Install CDK Dependency
