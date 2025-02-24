@@ -165,6 +165,7 @@ export class CiStack extends cdk.Stack {
           "ecs:DescribeTasks",
           "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
+          "ecs:ListTaskDefinitions",
         ],
         resources: ["*"],
         effect: iam.Effect.ALLOW,
@@ -185,18 +186,6 @@ export class CiStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
       })
     );
-    role.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ["iam:PassRole"],
-        resources: ["*"],
-        effect: iam.Effect.ALLOW,
-        conditions: {
-          StringEqualsIfExists: {
-            "iam:PassedToService": ["ecs-tasks.amazonaws.com"],
-          },
-        },
-      })
-    );
 
     // For deploy infrastructure by CDK
     role.addToPolicy(
@@ -215,6 +204,19 @@ export class CiStack extends cdk.Stack {
           `arn:aws:iam::${this.account}:role/cdk-hnb659fds-lookup-role-${this.account}-${this.region}`,
         ],
         effect: iam.Effect.ALLOW,
+      })
+    );
+
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["iam:PassRole"],
+        resources: ["*"],
+        effect: iam.Effect.ALLOW,
+        conditions: {
+          StringEqualsIfExists: {
+            "iam:PassedToService": ["ecs-tasks.amazonaws.com"],
+          },
+        },
       })
     );
   }
