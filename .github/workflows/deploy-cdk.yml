@@ -16,6 +16,7 @@ on:
         required: true
         type: boolean
         default: true
+  pull_request:
 
 jobs:
   deploy-cdk:
@@ -42,7 +43,18 @@ jobs:
         with:
           node-version: 22.8
 
-      - name: Install dependencies
+      - name: Cache CDK Dependency
+        uses: actions/cache@v3
+        id: cache-cdk-dependency
+        env:
+          cache-name: cache-cdk-dependency
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install CDK Dependency
+        if: ${{ steps.cache-cdk-dependency.outputs.cache-hit != 'true' }}
         run: |
           cd cdk
           npm install
@@ -64,13 +76,20 @@ jobs:
         run: |
           echo "BACKEND_IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
+      - name: CDK Diff Check
+        if: contains(github.event_name, 'pull_request')
+        run: |
+          cd cdk
+          npx cdk diff
+
       - name: CDK Deploy
+        if: contains(github.event_name, 'pull_request')
         run: |
           cd cdk
           npx cdk deploy --all --require-approval never -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c isApplicationDeploy=${{ inputs.is_application_deploy }}
 
   deploy-application:
-    name: Deploy application
+    name: Deploy Application
     needs: deploy-cdk
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
