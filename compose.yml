@@ -11,15 +11,16 @@ services:
     tty: true
     env_file:
       - "./backend/.env"
-    volumes:
-      - ./backend:/go/src/backend
-    # develop:
-    #   watch:
-    #     - action: sync
-    #       path: ./backend
-    #       target: /go/src/backend
-    #     - action: rebuild
-    #       path: ./backend
+    # docker compose up --watch
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /go/src/backend
+        - action: rebuild
+          path: ./backend
+    # volumes:
+    #   - ./backend:/go/src/backend
 
   redis:
     image: redis:latest
