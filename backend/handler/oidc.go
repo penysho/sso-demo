@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 )
@@ -42,10 +43,10 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if clientID != config.ClientID {
-	// 	http.Error(w, "Invalid client ID", http.StatusBadRequest)
-	// 	return
-	// }
+	if !slices.Contains(config.ClientIDs, clientID) {
+		http.Error(w, "Invalid client ID", http.StatusBadRequest)
+		return
+	}
 
 	authCode, err := utils.GenerateAuthorizationCode()
 	if err != nil {

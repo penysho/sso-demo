@@ -78,9 +78,7 @@ export default function LoginForm() {
   );
 
   useEffect(() => {
-    const hasValidToken = checkIDToken();
-
-    if (hasValidToken) {
+    if (checkIDToken()) {
       const ssoParams = getSSOParams(searchParams);
 
       if (isSSOParamsValid(ssoParams)) {
