@@ -1,25 +1,27 @@
-FROM golang:1.23.6-bookworm as builder
-
-CMD ["/bin/bash", "-b"]
+FROM golang:1.23.6-alpine as base
 
 ENV GOPATH=/go
-
-RUN apt-get update && apt-get upgrade -y \
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /go/src/backend
 
 COPY backend/go.mod backend/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
+FROM base as local
+
+RUN go install github.com/air-verse/air@latest && \
+    go install github.com/go-delve/delve/cmd/dlv@latest
+
+CMD ["air", "-c", ".air.toml"]
+
+FROM base as builder
+
 COPY backend/ .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o main ./main.go
 
-FROM debian:bookworm-slim as develop
+FROM alpine:latest as prod
 
 WORKDIR /app
 

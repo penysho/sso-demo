@@ -102,3 +102,8 @@ $RECYCLE.BIN/
 
 .env
 .env.*
+
+# air-verse/air
+/tmp
+post_cmd.txt
+pre_cmd.txt

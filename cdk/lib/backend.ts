@@ -185,6 +185,7 @@ export class BackendStack extends cdk.Stack {
         },
         file: "backend/docker/Dockerfile.remote",
         platform: Platform.LINUX_AMD64,
+        target: "prod",
       });
 
       new ecrdeploy.ECRDeployment(this, "DeployDockerImage", {
