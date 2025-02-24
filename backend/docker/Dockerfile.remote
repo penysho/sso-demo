@@ -27,8 +27,9 @@ WORKDIR /app
 
 COPY --from=builder /go/src/backend/main .
 
-RUN groupadd --system --gid 1000 backend \
-    && useradd --no-log-init --system -u 1000 --gid backend --create-home backend
+RUN addgroup -S -g 1000 backend && \
+    adduser -S -u 1000 -G backend backend
+
 USER backend
 
 EXPOSE 8080
