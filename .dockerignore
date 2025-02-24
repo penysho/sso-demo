@@ -1,7 +1,21 @@
+# ignore docker-compose files
+compose.*.yml
+
+# ignore environment files
+.env*
+
+# ignore document files
+.docs/
+*.md
+
+# ignore editor settings
+.idea/
+.vscode/
+
+# ignore project files
 cdk
 redis
 demo-store-1
 demo-store-2
 demo-store-3
 auth-hub
-.vscode
