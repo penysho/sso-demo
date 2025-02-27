@@ -39,3 +39,7 @@ func GetSession[T model.OidcSession | model.Session](sessionID string) (*T, erro
 
 	return &session, nil
 }
+
+func DeleteSession(sessionID string) error {
+	return redisClient.Del(ctx, "session:"+sessionID).Err()
+}

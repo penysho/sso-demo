@@ -23,12 +23,12 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken := r.Header.Get("Authorization")
-	if idToken == "" {
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
 		http.Error(w, "Missing authorization header", http.StatusUnauthorized)
 		return
 	}
-	idToken = strings.TrimPrefix(idToken, "Bearer ")
+	idToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
 	if idToken == "" {
 		http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 		return
@@ -115,6 +115,11 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
 		return
 	}
+	defer func() {
+		if err := store.DeleteSession(authCode); err != nil {
+			log.Printf("Failed to delete authorization code: %v", err)
+		}
+	}()
 
 	codeVerifierHash := sha256.Sum256([]byte(codeVerifier))
 	codeVerifierHashString := hex.EncodeToString(codeVerifierHash[:])
