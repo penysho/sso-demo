@@ -16,7 +16,7 @@ func SaveSession[T model.OidcSession | model.Session](sessionID string, session 
 		return err
 	}
 
-	return redisClient.Set(ctx, "session:"+sessionID, sessionJSON, 24*time.Hour).Err()
+	return redisClient.Set(ctx, "session:"+sessionID, sessionJSON, 5*time.Minute).Err()
 }
 
 func GetSession[T model.OidcSession | model.Session](sessionID string) (*T, error) {

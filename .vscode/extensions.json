@@ -50,6 +50,7 @@
     "mhutchie.git-graph",
     "eamodio.gitlens",
     "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
     // Common
     "ms-ceintl.vscode-language-pack-ja",
     "visualstudioexptteam.vscodeintellicode",
