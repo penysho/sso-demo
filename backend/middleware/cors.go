@@ -10,7 +10,7 @@ func Cors(next http.HandlerFunc) http.HandlerFunc {
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Access-Token, X-Refresh-Token")
 			w.WriteHeader(http.StatusOK)
 			return
 		}

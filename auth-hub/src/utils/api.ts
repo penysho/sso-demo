@@ -1,4 +1,4 @@
-import { SessionRequest, SessionResponse } from "@/types/session";
+import { SessionRequest, SessionResponse, Tokens } from "@/types/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -8,7 +8,7 @@ if (!API_URL) {
 
 export async function authorize(
   request: SessionRequest,
-  idToken: string
+  tokens: Tokens
 ): Promise<string> {
   const url = new URL(`${API_URL}/api/oauth/authorize`);
 
@@ -20,7 +20,9 @@ export async function authorize(
   const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${idToken}`,
+      Authorization: `Bearer ${tokens.idToken}`,
+      "X-Access-Token": tokens.accessToken || "",
+      "X-Refresh-Token": tokens.refreshToken || "",
     },
   });
 

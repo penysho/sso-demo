@@ -1,6 +1,14 @@
 "use client";
 
-import { ID_TOKEN_KEY, ID_TOKEN_VALUE } from "@/constants/auth";
+import {
+  ACCESS_TOKEN_KEY,
+  ACCESS_TOKEN_VALUE,
+  ID_TOKEN_KEY,
+  ID_TOKEN_VALUE,
+  REFRESH_TOKEN_KEY,
+  REFRESH_TOKEN_VALUE,
+} from "@/constants/auth";
+import { Tokens } from "@/types/session";
 import { authorize } from "@/utils/api";
 import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -40,18 +48,28 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const getIDToken = (): string | undefined => {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
-      ?.split("=")[1];
+  const getTokens = (): Tokens => {
+    return {
+      idToken: document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
+        ?.split("=")[1],
+      accessToken: document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${ACCESS_TOKEN_KEY}=`))
+        ?.split("=")[1],
+      refreshToken: document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${REFRESH_TOKEN_KEY}=`))
+        ?.split("=")[1],
+    };
   };
 
   const handleSSORedirect = useCallback(
     async (ssoParams: SSOParams) => {
       try {
-        const idToken = getIDToken();
-        if (!idToken) {
+        const tokens = getTokens();
+        if (!tokens.idToken) {
           throw new Error("ID Token not found");
         }
 
@@ -61,7 +79,7 @@ export default function LoginForm() {
             redirect_uri: ssoParams.redirectUri,
             code_challenge: ssoParams.codeChallenge,
           },
-          idToken
+          tokens
         );
 
         const finalredirectUri = new URL(ssoParams.redirectUri);
@@ -95,6 +113,8 @@ export default function LoginForm() {
     try {
       if (email !== "" && password !== "") {
         document.cookie = `${ID_TOKEN_KEY}=${ID_TOKEN_VALUE}; path=/`;
+        document.cookie = `${ACCESS_TOKEN_KEY}=${ACCESS_TOKEN_VALUE}; path=/`;
+        document.cookie = `${REFRESH_TOKEN_KEY}=${REFRESH_TOKEN_VALUE}; path=/`;
 
         const ssoParams = getSSOParams(searchParams);
 

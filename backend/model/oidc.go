@@ -16,12 +16,14 @@ type OidcSession struct {
 	AuthorizationCode string    `json:"authorization_code"`
 	IDToken           string    `json:"id_token"`
 	AccessToken       string    `json:"access_token"`
+	RefreshToken      string    `json:"refresh_token"`
 	ClientID          string    `json:"client_id"`
 	CodeChallenge     string    `json:"code_challenge"`
 	CreatedAt         time.Time `json:"created_at"`
 }
 
 type OidcTokenResponse struct {
-	IDToken     string `json:"id_token"`
-	AccessToken string `json:"access_token"`
+	IDToken      string `json:"id_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

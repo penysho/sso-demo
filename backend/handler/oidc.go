@@ -34,6 +34,17 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accessToken := r.Header.Get("X-Access-Token")
+	if accessToken == "" {
+		http.Error(w, "Missing access token", http.StatusUnauthorized)
+		return
+	}
+	refreshToken := r.Header.Get("X-Refresh-Token")
+	if refreshToken == "" {
+		http.Error(w, "Missing refresh token", http.StatusUnauthorized)
+		return
+	}
+
 	clientID := r.URL.Query().Get("client_id")
 	redirectURI := r.URL.Query().Get("redirect_uri")
 	codeChallenge := r.URL.Query().Get("code_challenge")
@@ -57,7 +68,8 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	session := model.OidcSession{
 		AuthorizationCode: authCode,
 		IDToken:           idToken,
-		AccessToken:       "dummy_access_token",
+		AccessToken:       accessToken,
+		RefreshToken:      refreshToken,
 		ClientID:          clientID,
 		CodeChallenge:     codeChallenge,
 		CreatedAt:         time.Now(),
@@ -75,7 +87,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Access-Token, X-Refresh-Token")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
@@ -129,14 +141,15 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := model.OidcTokenResponse{
-		IDToken:     session.IDToken,
-		AccessToken: session.AccessToken,
+		IDToken:      session.IDToken,
+		AccessToken:  session.AccessToken,
+		RefreshToken: session.RefreshToken,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 

@@ -4,6 +4,12 @@ export interface SessionRequest {
   code_challenge: string;
 }
 
+export interface Tokens {
+  idToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
 export interface SessionResponse {
   authorization_code: string;
 }
