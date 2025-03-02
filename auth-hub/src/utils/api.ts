@@ -36,3 +36,30 @@ export async function authorize(
   const data = (await response.json()) as SessionResponse;
   return data.authorization_code;
 }
+
+export async function authenticate(
+  email: string,
+  password: string
+): Promise<{
+  id_token: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}> {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Unknown error" }));
+    throw new Error(error.message || "Authentication failed");
+  }
+
+  return response.json();
+}

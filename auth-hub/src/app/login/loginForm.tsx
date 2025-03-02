@@ -2,14 +2,11 @@
 
 import {
   ACCESS_TOKEN_KEY,
-  ACCESS_TOKEN_VALUE,
   ID_TOKEN_KEY,
-  ID_TOKEN_VALUE,
   REFRESH_TOKEN_KEY,
-  REFRESH_TOKEN_VALUE,
 } from "@/constants/auth";
 import { Tokens } from "@/types/session";
-import { authorize } from "@/utils/api";
+import { authenticate, authorize } from "@/utils/api";
 import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -112,9 +109,11 @@ export default function LoginForm() {
 
     try {
       if (email !== "" && password !== "") {
-        document.cookie = `${ID_TOKEN_KEY}=${ID_TOKEN_VALUE}; path=/`;
-        document.cookie = `${ACCESS_TOKEN_KEY}=${ACCESS_TOKEN_VALUE}; path=/`;
-        document.cookie = `${REFRESH_TOKEN_KEY}=${REFRESH_TOKEN_VALUE}; path=/`;
+        const tokens = await authenticate(email, password);
+
+        document.cookie = `${ID_TOKEN_KEY}=${tokens.id_token}; path=/`;
+        document.cookie = `${ACCESS_TOKEN_KEY}=${tokens.access_token}; path=/`;
+        document.cookie = `${REFRESH_TOKEN_KEY}=${tokens.refresh_token}; path=/`;
 
         const ssoParams = getSSOParams(searchParams);
 
@@ -126,8 +125,8 @@ export default function LoginForm() {
       } else {
         setError("メールアドレスまたはパスワードが間違っています");
       }
-    } catch (_err) {
-      console.error(_err);
+    } catch (err) {
+      console.error(err);
       setError("ログイン処理中にエラーが発生しました");
     }
   };
