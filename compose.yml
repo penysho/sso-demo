@@ -14,9 +14,6 @@ services:
     # docker compose up --watch
     develop:
       watch:
-        - action: sync
-          path: ./backend
-          target: /go/src/backend
         - action: rebuild
           path: ./backend
     # volumes:

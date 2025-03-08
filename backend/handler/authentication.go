@@ -78,14 +78,14 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 func generateIDToken(email string, now time.Time, expiresIn int64) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":   email,                                                  // subject (ユーザーID)
-		"iss":   "auth-hub",                                             // issuer (発行者)
-		"aud":   "auth-hub",                                             // audience (想定利用者)
-		"iat":   now.Unix(),                                             // issued at (発行時刻)
-		"exp":   now.Add(time.Duration(expiresIn) * time.Second).Unix(), // expiration (有効期限)
-		"email": email,                                                  // email claim
+		"sub":   email,
+		"iss":   "https://auth-hub.example.com", // 実際のドメインに変更
+		"aud":   "auth-hub",
+		"iat":   now.Unix(),
+		"exp":   now.Add(time.Duration(expiresIn) * time.Second).Unix(),
+		"email": email,
 	}
-	return utils.GenerateJWT(claims)
+	return utils.GenerateToken(claims)
 }
 
 func generateAccessToken(email string, now time.Time, expiresIn int64) (string, error) {
@@ -96,7 +96,7 @@ func generateAccessToken(email string, now time.Time, expiresIn int64) (string, 
 		"exp":   now.Add(time.Duration(expiresIn) * time.Second).Unix(),
 		"scope": "openid profile email", // スコープ
 	}
-	return utils.GenerateJWT(claims)
+	return utils.GenerateToken(claims)
 }
 
 func generateRefreshToken(email string) (string, error) {
@@ -107,5 +107,5 @@ func generateRefreshToken(email string) (string, error) {
 		"exp":  time.Now().Add(24 * 30 * time.Hour).Unix(), // 30日
 		"type": "refresh",
 	}
-	return utils.GenerateJWT(claims)
+	return utils.GenerateToken(claims)
 }
