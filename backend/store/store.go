@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func SaveSession[T model.OidcSession | model.Session](sessionID string, session T) error {
+func SaveSession[T model.OidcSession](sessionID string, session T) error {
 	sessionJSON, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -19,7 +19,7 @@ func SaveSession[T model.OidcSession | model.Session](sessionID string, session 
 	return redisClient.Set(ctx, "session:"+sessionID, sessionJSON, 5*time.Minute).Err()
 }
 
-func GetSession[T model.OidcSession | model.Session](sessionID string) (*T, error) {
+func GetSession[T model.OidcSession](sessionID string) (*T, error) {
 	if len(sessionID) != 64 {
 		return nil, fmt.Errorf("invalid session id format")
 	}

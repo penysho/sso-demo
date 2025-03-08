@@ -25,8 +25,6 @@ func main() {
 	}
 
 	http.HandleFunc("/health", handler.Health)
-	http.HandleFunc("/api/sessions", middleware.Cors(handler.CreateSession))
-	http.HandleFunc("/api/sessions/token", middleware.Cors(handler.GetSessionToken))
 	http.HandleFunc("/api/oauth/authorize", middleware.Cors(handler.OidcAuthorize))
 	http.HandleFunc("/api/oauth/token", middleware.Cors(handler.OidcToken))
 	http.HandleFunc("/api/auth/login", middleware.Cors(handler.Authenticate))
