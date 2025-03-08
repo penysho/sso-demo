@@ -264,6 +264,12 @@ export class BackendStack extends cdk.Stack {
       }),
     });
     container.addEnvironment("REDIS_ADDR", props.elasticacheStack.cacheAddr);
+    container.addEnvironment(
+      "REDIS_AUTH_TOKEN",
+      props.elasticacheStack.redisSecret
+        .secretValueFromJson("password")
+        .unsafeUnwrap()
+    );
     container.addEnvironment("CORS_ALLOWED_ORIGIN", "*");
 
     // Service
