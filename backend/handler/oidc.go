@@ -19,42 +19,66 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	log.Println("OidcAuthorize")
 
 	if r.Method != http.MethodGet {
+		log.Printf("Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	authorizationHeader := r.Header.Get("Authorization")
 	if authorizationHeader == "" {
+		log.Println("Missing authorization header")
 		http.Error(w, "Missing authorization header", http.StatusUnauthorized)
 		return
 	}
 	idToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
 	if idToken == "" {
+		log.Println("Invalid authorization header")
 		http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 		return
 	}
 
 	accessToken := r.Header.Get("X-Access-Token")
 	if accessToken == "" {
+		log.Println("Missing access token")
 		http.Error(w, "Missing access token", http.StatusUnauthorized)
 		return
 	}
 	refreshToken := r.Header.Get("X-Refresh-Token")
 	if refreshToken == "" {
+		log.Println("Missing refresh token")
 		http.Error(w, "Missing refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	responseType := r.URL.Query().Get("response_type")
+	if responseType != "code" {
+		log.Printf("Invalid response type: %s", responseType)
+		http.Error(w, "Invalid response type", http.StatusBadRequest)
+		return
+	}
+
+	scope := r.URL.Query().Get("scope")
+	scopes := strings.Fields(scope)
+	if !slices.Contains(scopes, "openid") {
+		log.Printf("Missing openid scope. Provided scopes: %v", scopes)
+		http.Error(w, "Missing openid scope", http.StatusBadRequest)
 		return
 	}
 
 	clientID := r.URL.Query().Get("client_id")
 	redirectURI := r.URL.Query().Get("redirect_uri")
 	codeChallenge := r.URL.Query().Get("code_challenge")
+	codeChallengeMethod := r.URL.Query().Get("code_challenge_method")
 
 	if clientID == "" || redirectURI == "" || codeChallenge == "" {
+		log.Printf("Missing required fields: client_id=%s, redirect_uri=%s, code_challenge=%s",
+			clientID, redirectURI, codeChallenge)
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
 	if !slices.Contains(config.ClientIDs, clientID) {
+		log.Printf("Invalid client ID: %s", clientID)
 		http.Error(w, "Invalid client ID", http.StatusBadRequest)
 		return
 	}
@@ -66,13 +90,15 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := model.OidcSession{
-		AuthorizationCode: authCode,
-		IDToken:           idToken,
-		AccessToken:       accessToken,
-		RefreshToken:      refreshToken,
-		ClientID:          clientID,
-		CodeChallenge:     codeChallenge,
-		CreatedAt:         time.Now(),
+		AuthorizationCode:   authCode,
+		IDToken:             idToken,
+		AccessToken:         accessToken,
+		RefreshToken:        refreshToken,
+		ClientID:            clientID,
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
+		Scope:               scope,
+		CreatedAt:           time.Now(),
 	}
 
 	if err := store.SaveSession(authCode, session); err != nil {
@@ -101,11 +127,13 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("OidcToken")
 
 	if r.Method != http.MethodPost {
+		log.Printf("Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
+		log.Printf("Invalid form data: %v", err)
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
@@ -114,16 +142,19 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 	codeVerifier := r.PostForm.Get("code_verifier")
 
 	if authCode == "" {
+		log.Println("Missing authorization code")
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
 		return
 	}
 	if codeVerifier == "" {
+		log.Println("Missing code verifier")
 		http.Error(w, "Missing code verifier", http.StatusBadRequest)
 		return
 	}
 
 	session, err := store.GetSession[model.OidcSession](authCode)
 	if err != nil {
+		log.Printf("Invalid authorization code: %v", err)
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
 		return
 	}

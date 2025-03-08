@@ -35,6 +35,11 @@ export default function HomePage() {
     }
 
     const authHubLoginUrl = new URL("/login", authHubBaseUrl);
+
+    authHubLoginUrl.searchParams.set("response_type", "code");
+    authHubLoginUrl.searchParams.set("scope", "openid profile email");
+
+    authHubLoginUrl.searchParams.set("client_id", "demo-store-3");
     authHubLoginUrl.searchParams.set("state", state);
     authHubLoginUrl.searchParams.set(
       "redirect_uri",
@@ -42,7 +47,7 @@ export default function HomePage() {
     );
     authHubLoginUrl.searchParams.set("code_challenge", codeChallenge);
     authHubLoginUrl.searchParams.set("code_challenge_method", "S256");
-    authHubLoginUrl.searchParams.set("client_id", "demo-store-3");
+
     window.location.href = authHubLoginUrl.toString();
   };
 

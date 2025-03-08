@@ -17,6 +17,8 @@ type SSOParams = {
   redirectUri: string;
   codeChallenge: string;
   codeChallengeMethod: string;
+  responseType: string;
+  scope: string;
 };
 
 const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
@@ -26,6 +28,8 @@ const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
     redirectUri: searchParams.get("redirect_uri") ?? "",
     codeChallenge: searchParams.get("code_challenge") ?? "",
     codeChallengeMethod: searchParams.get("code_challenge_method") ?? "",
+    responseType: searchParams.get("response_type") ?? "",
+    scope: searchParams.get("scope") ?? "",
   };
 };
 
@@ -34,7 +38,9 @@ const isSSOParamsValid = (ssoParams: SSOParams): boolean => {
     ssoParams.state &&
     ssoParams.redirectUri &&
     ssoParams.codeChallenge &&
-    ssoParams.codeChallengeMethod
+    ssoParams.codeChallengeMethod &&
+    ssoParams.responseType === "code" &&
+    ssoParams.scope.includes("openid")
   );
 };
 
@@ -75,6 +81,9 @@ export default function LoginForm() {
             client_id: ssoParams.clientId,
             redirect_uri: ssoParams.redirectUri,
             code_challenge: ssoParams.codeChallenge,
+            code_challenge_method: ssoParams.codeChallengeMethod,
+            response_type: ssoParams.responseType,
+            scope: ssoParams.scope,
           },
           tokens
         );

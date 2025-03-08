@@ -16,6 +16,9 @@ export async function authorize(
   url.searchParams.set("client_id", request.client_id);
   url.searchParams.set("redirect_uri", request.redirect_uri);
   url.searchParams.set("code_challenge", request.code_challenge);
+  url.searchParams.set("code_challenge_method", request.code_challenge_method);
+  url.searchParams.set("response_type", request.response_type);
+  url.searchParams.set("scope", request.scope);
 
   const response = await fetch(url.toString(), {
     method: "GET",

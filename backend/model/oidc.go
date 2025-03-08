@@ -13,13 +13,15 @@ type OidcAuthorizeResponse struct {
 }
 
 type OidcSession struct {
-	AuthorizationCode string    `json:"authorization_code"`
-	IDToken           string    `json:"id_token"`
-	AccessToken       string    `json:"access_token"`
-	RefreshToken      string    `json:"refresh_token"`
-	ClientID          string    `json:"client_id"`
-	CodeChallenge     string    `json:"code_challenge"`
-	CreatedAt         time.Time `json:"created_at"`
+	AuthorizationCode   string    `json:"authorization_code"`
+	IDToken             string    `json:"id_token"`
+	AccessToken         string    `json:"access_token"`
+	RefreshToken        string    `json:"refresh_token"`
+	ClientID            string    `json:"client_id"`
+	CodeChallenge       string    `json:"code_challenge"`
+	CodeChallengeMethod string    `json:"code_challenge_method"`
+	Scope               string    `json:"scope"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type OidcTokenResponse struct {
