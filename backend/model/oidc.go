@@ -21,6 +21,7 @@ type OidcSession struct {
 	CodeChallenge       string    `json:"code_challenge"`
 	CodeChallengeMethod string    `json:"code_challenge_method"`
 	Scope               string    `json:"scope"`
+	RedirectURI         string    `json:"redirect_uri"`
 	CreatedAt           time.Time `json:"created_at"`
 }
 
@@ -28,4 +29,6 @@ type OidcTokenResponse struct {
 	IDToken      string `json:"id_token"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
 }

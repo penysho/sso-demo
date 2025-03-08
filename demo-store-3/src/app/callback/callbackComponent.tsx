@@ -42,6 +42,9 @@ export default function CallbackComponent() {
         const { id_token, access_token } = await getSessionToken({
           code,
           code_verifier: savedCodeVerifier ?? "",
+          grant_type: "authorization_code",
+          client_id: "demo-store-3",
+          redirect_uri: `${window.location.origin}/callback`,
         });
 
         sessionStorage.removeItem("sso_state");

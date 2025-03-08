@@ -98,6 +98,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
 		Scope:               scope,
+		RedirectURI:         redirectURI,
 		CreatedAt:           time.Now(),
 	}
 
@@ -138,6 +139,28 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// OIDCパラメータの検証
+	grantType := r.PostForm.Get("grant_type")
+	if grantType != "authorization_code" {
+		log.Printf("Invalid grant type: %s", grantType)
+		http.Error(w, "Invalid grant type", http.StatusBadRequest)
+		return
+	}
+
+	clientID := r.PostForm.Get("client_id")
+	if !slices.Contains(config.ClientIDs, clientID) {
+		log.Printf("Invalid client ID: %s", clientID)
+		http.Error(w, "Invalid client ID", http.StatusBadRequest)
+		return
+	}
+
+	redirectURI := r.PostForm.Get("redirect_uri")
+	if redirectURI == "" {
+		log.Println("Missing redirect URI")
+		http.Error(w, "Missing redirect URI", http.StatusBadRequest)
+		return
+	}
+
 	authCode := r.PostForm.Get("code")
 	codeVerifier := r.PostForm.Get("code_verifier")
 
@@ -158,15 +181,26 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
 		return
 	}
-	defer func() {
-		if err := store.DeleteSession(authCode); err != nil {
-			log.Printf("Failed to delete authorization code: %v", err)
-		}
-	}()
 
+	// セッションの検証
+	if session.ClientID != clientID {
+		log.Printf("Client ID mismatch: expected=%s, got=%s", session.ClientID, clientID)
+		http.Error(w, "Invalid client ID", http.StatusBadRequest)
+		return
+	}
+
+	if session.RedirectURI != redirectURI {
+		log.Printf("Redirect URI mismatch: expected=%s, got=%s", session.RedirectURI, redirectURI)
+		http.Error(w, "Invalid redirect URI", http.StatusBadRequest)
+		return
+	}
+
+	// PKCE検証
 	codeVerifierHash := sha256.Sum256([]byte(codeVerifier))
 	codeVerifierHashString := base64.RawURLEncoding.EncodeToString(codeVerifierHash[:])
 	if codeVerifierHashString != session.CodeChallenge {
+		log.Printf("Invalid code verifier: challenge=%s, computed=%s",
+			session.CodeChallenge, codeVerifierHashString)
 		http.Error(w, "Invalid code verifier", http.StatusBadRequest)
 		return
 	}
@@ -175,6 +209,8 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		IDToken:      session.IDToken,
 		AccessToken:  session.AccessToken,
 		RefreshToken: session.RefreshToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
