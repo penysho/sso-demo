@@ -45,6 +45,8 @@ export class ElasticacheStack extends cdk.Stack {
       "Allow inbound from cache client"
     );
 
+    // const EXCLUDE_CHARACTERS = `"{}~()_=+[]\\|;:'",.?/@_*\\\``;
+
     const cluster = new elasticache.CfnReplicationGroup(
       this,
       "RedisReplicationGroup",
