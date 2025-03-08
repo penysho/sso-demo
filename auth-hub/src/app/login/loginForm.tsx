@@ -8,9 +8,13 @@ import {
 import { Tokens } from "@/types/session";
 import { authenticate, authorize } from "@/utils/api";
 import { checkIDToken } from "@/utils/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
+// SSOパラメータの型定義
 type SSOParams = {
   clientId: string;
   state: string;
@@ -21,6 +25,22 @@ type SSOParams = {
   scope: string;
 };
 
+// バリデーションスキーマの定義
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "メールアドレスを入力してください")
+    .email("有効なメールアドレスを入力してください"),
+  password: z
+    .string()
+    .min(1, "パスワードを入力してください")
+    .min(8, "パスワードは8文字以上である必要があります"),
+});
+
+// フォームの型定義
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+// SSOパラメータの取得関数
 const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
   return {
     clientId: searchParams.get("client_id") ?? "",
@@ -33,8 +53,10 @@ const getSSOParams = (searchParams: URLSearchParams): SSOParams => {
   };
 };
 
+// SSOパラメータのバリデーション
 const isSSOParamsValid = (ssoParams: SSOParams): boolean => {
   return !!(
+    ssoParams.clientId &&
     ssoParams.state &&
     ssoParams.redirectUri &&
     ssoParams.codeChallenge &&
@@ -45,35 +67,63 @@ const isSSOParamsValid = (ssoParams: SSOParams): boolean => {
 };
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const getTokens = (): Tokens => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const getTokensFromCookies = useCallback((): Tokens => {
+    const cookies = document.cookie.split("; ");
+
     return {
-      idToken: document.cookie
-        .split("; ")
-        .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
-        ?.split("=")[1],
-      accessToken: document.cookie
-        .split("; ")
-        .find((row) => row.startsWith(`${ACCESS_TOKEN_KEY}=`))
-        ?.split("=")[1],
-      refreshToken: document.cookie
-        .split("; ")
-        .find((row) => row.startsWith(`${REFRESH_TOKEN_KEY}=`))
-        ?.split("=")[1],
+      idToken:
+        cookies
+          .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
+          ?.split("=")[1] || undefined,
+      accessToken:
+        cookies
+          .find((row) => row.startsWith(`${ACCESS_TOKEN_KEY}=`))
+          ?.split("=")[1] || undefined,
+      refreshToken:
+        cookies
+          .find((row) => row.startsWith(`${REFRESH_TOKEN_KEY}=`))
+          ?.split("=")[1] || undefined,
     };
-  };
+  }, []);
+
+  const saveTokensToCookies = useCallback(
+    (tokens: {
+      id_token: string;
+      access_token: string;
+      refresh_token: string;
+    }) => {
+      document.cookie = `${ID_TOKEN_KEY}=${tokens.id_token}; path=/; secure; samesite=lax`;
+      document.cookie = `${ACCESS_TOKEN_KEY}=${tokens.access_token}; path=/; secure; samesite=lax`;
+      document.cookie = `${REFRESH_TOKEN_KEY}=${tokens.refresh_token}; path=/; secure; samesite=lax`;
+    },
+    []
+  );
 
   const handleSSORedirect = useCallback(
     async (ssoParams: SSOParams) => {
       try {
-        const tokens = getTokens();
+        setIsLoading(true);
+        const tokens = getTokensFromCookies();
+
         if (!tokens.idToken) {
-          throw new Error("ID Token not found");
+          throw new Error("IDトークンが見つかりません");
         }
 
         const authCode = await authorize(
@@ -88,42 +138,24 @@ export default function LoginForm() {
           tokens
         );
 
-        const finalredirectUri = new URL(ssoParams.redirectUri);
-        finalredirectUri.searchParams.set("code", authCode);
-        finalredirectUri.searchParams.set("state", ssoParams.state);
+        const finalRedirectUri = new URL(ssoParams.redirectUri);
+        finalRedirectUri.searchParams.set("code", authCode);
+        finalRedirectUri.searchParams.set("state", ssoParams.state);
 
-        window.location.href = finalredirectUri.toString();
+        window.location.href = finalRedirectUri.toString();
       } catch (err) {
-        console.error("Failed to handle SSO redirect:", err);
-        setError("SSO処理中にエラーが発生しました");
+        console.error("SSO処理中にエラーが発生しました:", err);
+        setError("SSO処理中にエラーが発生しました。もう一度お試しください。");
+      } finally {
+        setIsLoading(false);
       }
     },
-    [setError]
+    [getTokensFromCookies]
   );
 
   useEffect(() => {
-    if (checkIDToken()) {
-      const ssoParams = getSSOParams(searchParams);
-
-      if (isSSOParamsValid(ssoParams)) {
-        handleSSORedirect(ssoParams);
-      } else {
-        router.push("/");
-      }
-    }
-  }, [router, searchParams, handleSSORedirect]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (email !== "" && password !== "") {
-        const tokens = await authenticate(email, password);
-
-        document.cookie = `${ID_TOKEN_KEY}=${tokens.id_token}; path=/`;
-        document.cookie = `${ACCESS_TOKEN_KEY}=${tokens.access_token}; path=/`;
-        document.cookie = `${REFRESH_TOKEN_KEY}=${tokens.refresh_token}; path=/`;
-
+    const checkExistingSession = async () => {
+      if (checkIDToken()) {
         const ssoParams = getSSOParams(searchParams);
 
         if (isSSOParamsValid(ssoParams)) {
@@ -131,12 +163,32 @@ export default function LoginForm() {
         } else {
           router.push("/");
         }
+      }
+    };
+
+    checkExistingSession();
+  }, [router, searchParams, handleSSORedirect]);
+
+  const onSubmit = async (data: LoginFormValues) => {
+    setError("");
+
+    try {
+      setIsLoading(true);
+      const tokens = await authenticate(data.email, data.password);
+      saveTokensToCookies(tokens);
+
+      const ssoParams = getSSOParams(searchParams);
+
+      if (isSSOParamsValid(ssoParams)) {
+        await handleSSORedirect(ssoParams);
       } else {
-        setError("メールアドレスまたはパスワードが間違っています");
+        router.push("/");
       }
     } catch (err) {
-      console.error(err);
-      setError("ログイン処理中にエラーが発生しました");
+      console.error("ログイン処理中にエラーが発生しました:", err);
+      setError("メールアドレスまたはパスワードが間違っています");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -147,7 +199,7 @@ export default function LoginForm() {
           Auth Hubにログイン
         </h2>
         {error && <p className="text-red-600 text-center mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label
               htmlFor="email"
@@ -158,11 +210,17 @@ export default function LoginForm() {
             <input
               id="email"
               type="email"
-              required
-              className="w-full px-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-transparent transition"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              className={`w-full px-4 py-2 border ${
+                errors.email ? "border-red-500" : "border-zinc-300"
+              } rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-transparent transition`}
+              disabled={isLoading}
+              {...register("email")}
             />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -175,18 +233,25 @@ export default function LoginForm() {
             <input
               id="password"
               type="password"
-              required
-              className="w-full px-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-transparent transition"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              className={`w-full px-4 py-2 border ${
+                errors.password ? "border-red-500" : "border-zinc-300"
+              } rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-transparent transition`}
+              disabled={isLoading}
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full bg-zinc-800 text-white py-2 px-4 rounded-md hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 transition duration-150 ease-in-out mt-6"
+            className="w-full bg-zinc-800 text-white py-2 px-4 rounded-md hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 transition duration-150 ease-in-out mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
           >
-            ログイン
+            {isLoading ? "処理中..." : "ログイン"}
           </button>
         </form>
       </div>
