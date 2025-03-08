@@ -38,7 +38,6 @@ func GetJWKS() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to create JWK: %w", err)
 	}
 
-	// 必要なJWKパラメータを設定
 	if err := key.Set(jwk.KeyIDKey, keyID); err != nil {
 		return nil, err
 	}
@@ -48,10 +47,6 @@ func GetJWKS() (map[string]interface{}, error) {
 	if err := key.Set(jwk.KeyUsageKey, "sig"); err != nil {
 		return nil, err
 	}
-
-	// JWKSフォーマットで返す
-	set := jwk.NewSet()
-	set.AddKey(key)
 
 	return map[string]interface{}{
 		"keys": []interface{}{key},

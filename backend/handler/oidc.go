@@ -6,7 +6,7 @@ import (
 	"backend/store"
 	"backend/utils"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -134,7 +134,7 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	codeVerifierHash := sha256.Sum256([]byte(codeVerifier))
-	codeVerifierHashString := hex.EncodeToString(codeVerifierHash[:])
+	codeVerifierHashString := base64.RawURLEncoding.EncodeToString(codeVerifierHash[:])
 	if codeVerifierHashString != session.CodeChallenge {
 		http.Error(w, "Invalid code verifier", http.StatusBadRequest)
 		return

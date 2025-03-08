@@ -1,7 +1,8 @@
 "use client";
 
 import { ACCESS_TOKEN_KEY, ID_TOKEN_KEY } from "@/constants/auth";
-import { generateChallenge, generateState } from "@/utils/auth";
+import { generateState } from "@/utils/auth";
+import { generateChallenge } from "@/utils/pkce";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
