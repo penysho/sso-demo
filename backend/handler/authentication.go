@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
@@ -36,21 +34,21 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	expiresIn := int64(3600) // 1時間
 
 	// IDトークンの生成
-	idToken, err := generateIDToken(req.Email, now, expiresIn)
+	idToken, err := utils.GenerateIDToken(req.Email, now, expiresIn)
 	if err != nil {
 		http.Error(w, "Failed to generate ID token", http.StatusInternalServerError)
 		return
 	}
 
 	// アクセストークンの生成
-	accessToken, err := generateAccessToken(req.Email, now, expiresIn)
+	accessToken, err := utils.GenerateAccessToken(req.Email, now, expiresIn)
 	if err != nil {
 		http.Error(w, "Failed to generate access token", http.StatusInternalServerError)
 		return
 	}
 
 	// リフレッシュトークンの生成
-	refreshToken, err := generateRefreshToken(req.Email)
+	refreshToken, err := utils.GenerateRefreshToken(req.Email)
 	if err != nil {
 		http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
 		return
@@ -74,38 +72,4 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
-}
-
-func generateIDToken(email string, now time.Time, expiresIn int64) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   email,
-		"iss":   "https://auth-hub.example.com", // 実際のドメインに変更
-		"aud":   "auth-hub",
-		"iat":   now.Unix(),
-		"exp":   now.Add(time.Duration(expiresIn) * time.Second).Unix(),
-		"email": email,
-	}
-	return utils.GenerateToken(claims)
-}
-
-func generateAccessToken(email string, now time.Time, expiresIn int64) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   email,
-		"iss":   "auth-hub",
-		"iat":   now.Unix(),
-		"exp":   now.Add(time.Duration(expiresIn) * time.Second).Unix(),
-		"scope": "openid profile email", // スコープ
-	}
-	return utils.GenerateToken(claims)
-}
-
-func generateRefreshToken(email string) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":  email,
-		"iss":  "auth-hub",
-		"iat":  time.Now().Unix(),
-		"exp":  time.Now().Add(24 * 30 * time.Hour).Unix(), // 30日
-		"type": "refresh",
-	}
-	return utils.GenerateToken(claims)
 }

@@ -5,8 +5,10 @@ import (
 	"backend/model"
 	"backend/store"
 	"backend/utils"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -83,7 +85,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCode, err := utils.GenerateAuthorizationCode()
+	authCode, err := generateAuthorizationCode()
 	if err != nil {
 		http.Error(w, "Failed to generate authorization code", http.StatusInternalServerError)
 		return
@@ -102,7 +104,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:           time.Now(),
 	}
 
-	if err := store.SaveSession(authCode, session); err != nil {
+	if err := store.SaveOidcSession(authCode, session); err != nil {
 		http.Error(w, "Failed to save session", http.StatusInternalServerError)
 		return
 	}
@@ -124,6 +126,14 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func generateAuthorizationCode() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
 func OidcToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("OidcToken")
 
@@ -141,12 +151,21 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 
 	// OIDCパラメータの検証
 	grantType := r.PostForm.Get("grant_type")
-	if grantType != "authorization_code" {
+
+	// grant_typeに基づいて処理を分岐
+	switch grantType {
+	case "authorization_code":
+		handleAuthorizationCodeGrant(w, r)
+	case "refresh_token":
+		handleRefreshTokenGrant(w, r)
+	default:
 		log.Printf("Invalid grant type: %s", grantType)
 		http.Error(w, "Invalid grant type", http.StatusBadRequest)
-		return
 	}
+}
 
+// 認可コードグラントタイプの処理
+func handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 	clientID := r.PostForm.Get("client_id")
 	if !slices.Contains(config.ClientIDs, clientID) {
 		log.Printf("Invalid client ID: %s", clientID)
@@ -175,7 +194,7 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := store.GetSession[model.OidcSession](authCode)
+	session, err := store.GetOidcSession(authCode)
 	if err != nil {
 		log.Printf("Invalid authorization code: %v", err)
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
@@ -205,10 +224,138 @@ func OidcToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := model.OidcTokenResponse{
-		IDToken:      session.IDToken,
-		AccessToken:  session.AccessToken,
+	// JWTトークンからメールアドレスを抽出
+	claims, err := utils.VerifyIDToken(session.IDToken)
+	if err != nil {
+		log.Printf("Invalid ID token: %v", err)
+		http.Error(w, "Invalid ID token", http.StatusBadRequest)
+		return
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		log.Printf("Email not found in token claims")
+		http.Error(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	// リフレッシュトークンセッションを保存
+	tokenSession := model.TokenSession{
+		Email:        email,
+		ClientID:     clientID,
 		RefreshToken: session.RefreshToken,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour), // 30日の有効期限
+		IsRevoked:    false,
+	}
+
+	if err := store.SaveTokenSession(session.RefreshToken, tokenSession); err != nil {
+		log.Printf("Failed to save token session: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// トークン発行後に認可コードセッションを削除
+	if err := store.DeleteOidcSession(authCode); err != nil {
+		log.Printf("Warning: Failed to delete authorization code session: %v", err)
+		// 処理は続行
+	}
+
+	sendTokenResponse(w, session.IDToken, session.AccessToken, session.RefreshToken)
+}
+
+// リフレッシュトークングラントタイプの処理
+func handleRefreshTokenGrant(w http.ResponseWriter, r *http.Request) {
+	clientID := r.PostForm.Get("client_id")
+	if !slices.Contains(config.ClientIDs, clientID) {
+		log.Printf("Invalid client ID: %s", clientID)
+		http.Error(w, "Invalid client ID", http.StatusBadRequest)
+		return
+	}
+
+	refreshToken := r.PostForm.Get("refresh_token")
+	if refreshToken == "" {
+		log.Println("Missing refresh token")
+		http.Error(w, "Missing refresh token", http.StatusBadRequest)
+		return
+	}
+
+	// トークンセッションを取得
+	tokenSession, err := store.GetTokenSession(refreshToken)
+	if err != nil {
+		log.Printf("Invalid refresh token: %v", err)
+		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		return
+	}
+
+	// トークンの有効性チェック
+	if tokenSession.IsRevoked {
+		log.Println("Refresh token has been revoked")
+		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		return
+	}
+
+	if time.Now().After(tokenSession.ExpiresAt) {
+		log.Println("Refresh token has expired")
+		http.Error(w, "Expired refresh token", http.StatusBadRequest)
+		return
+	}
+
+	// クライアントIDの検証
+	if tokenSession.ClientID != clientID {
+		log.Printf("Client ID mismatch for refresh token: expected=%s, got=%s", tokenSession.ClientID, clientID)
+		http.Error(w, "Invalid client ID", http.StatusBadRequest)
+		return
+	}
+
+	// 新しいアクセストークンとIDトークンを生成
+	newAccessToken, err := utils.GenerateAccessToken(tokenSession.Email, time.Now(), 3600)
+	if err != nil {
+		log.Printf("Failed to generate new access token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	newIdToken, err := utils.GenerateIDToken(tokenSession.Email, time.Now(), 3600)
+	if err != nil {
+		log.Printf("Failed to generate new ID token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 古いリフレッシュトークンを無効化
+	tokenSession.IsRevoked = true
+	if err := store.UpdateTokenSession(refreshToken, tokenSession); err != nil {
+		log.Printf("Warning: Failed to revoke old refresh token: %v", err)
+		// 処理は続行
+	}
+
+	// 新しいトークンセッションを保存
+	newTokenSession := model.TokenSession{
+		Email:        tokenSession.Email,
+		ClientID:     clientID,
+		RefreshToken: tokenSession.RefreshToken,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour), // 30日の有効期限
+		IsRevoked:    false,
+	}
+
+	if err := store.SaveTokenSession(tokenSession.RefreshToken, newTokenSession); err != nil {
+		log.Printf("Failed to save new token session: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 新しいトークンでレスポンスを送信
+	sendTokenResponse(w, newIdToken, newAccessToken, tokenSession.RefreshToken)
+}
+
+// トークンレスポンスを送信する共通関数
+func sendTokenResponse(w http.ResponseWriter, idToken, accessToken, refreshToken string) {
+	resp := model.OidcTokenResponse{
+		IDToken:      idToken,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    3600,
 	}
