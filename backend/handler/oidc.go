@@ -237,16 +237,16 @@ func handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	expiresIn := int64(3600)
 
-	// IDトークンの生成
-	idToken, err := utils.GenerateIDToken(userID, email, now, expiresIn)
+	// IDトークンの生成 - クライアントIDを渡す
+	idToken, err := utils.GenerateIDToken(userID, email, clientID, now, expiresIn)
 	if err != nil {
 		log.Printf("Failed to generate ID token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// アクセストークンの生成
-	accessToken, err := utils.GenerateAccessToken(userID, now, expiresIn)
+	// アクセストークンの生成 - クライアントIDを渡す
+	accessToken, err := utils.GenerateAccessToken(userID, clientID, now, expiresIn)
 	if err != nil {
 		log.Printf("Failed to generate access token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -338,23 +338,25 @@ func handleRefreshTokenGrant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 新しいアクセストークンとIDトークンを生成
-	newAccessToken, err := utils.GenerateAccessToken(
-		tokenSession.UserID,
-		time.Now(),
-		3600)
-	if err != nil {
-		log.Printf("Failed to generate new access token: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
 	newIdToken, err := utils.GenerateIDToken(
 		tokenSession.UserID,
 		user.Email,
+		clientID,
 		time.Now(),
 		3600)
 	if err != nil {
 		log.Printf("Failed to generate new ID token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	newAccessToken, err := utils.GenerateAccessToken(
+		tokenSession.UserID,
+		clientID,
+		time.Now(),
+		3600)
+	if err != nil {
+		log.Printf("Failed to generate new access token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

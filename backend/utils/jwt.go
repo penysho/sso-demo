@@ -19,7 +19,7 @@ func GenerateToken(claims jwt.MapClaims) (string, error) {
 }
 
 // GenerateIDToken IDトークンを生成します
-func GenerateIDToken(userID, email string, issuedAt time.Time, expiresIn int64) (string, error) {
+func GenerateIDToken(userID, email string, clientID string, issuedAt time.Time, expiresIn int64) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":            userID,
 		"email":          email,
@@ -27,26 +27,24 @@ func GenerateIDToken(userID, email string, issuedAt time.Time, expiresIn int64) 
 		"iat":            issuedAt.Unix(),
 		"exp":            issuedAt.Add(time.Duration(expiresIn) * time.Second).Unix(),
 		"iss":            "https://auth.example.com",
-		"aud":            "example-client",
+		"aud":            clientID,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return token.SignedString(privateKey)
+	return GenerateToken(claims)
 }
 
 // GenerateAccessToken アクセストークンを生成します
-func GenerateAccessToken(userID string, issuedAt time.Time, expiresIn int64) (string, error) {
+func GenerateAccessToken(userID string, clientID string, issuedAt time.Time, expiresIn int64) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
 		"iat": issuedAt.Unix(),
 		"exp": issuedAt.Add(time.Duration(expiresIn) * time.Second).Unix(),
 		"iss": "https://auth.example.com",
-		"aud": "example-client",
+		"aud": clientID,
 		"typ": "Bearer",
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return token.SignedString(privateKey)
+	return GenerateToken(claims)
 }
 
 // GenerateRefreshToken リフレッシュトークンを生成します
