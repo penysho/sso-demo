@@ -56,8 +56,8 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 認証セッション有効期限（10分）
-	expiresIn := 10 * 60
+	// 認証セッション有効期限（24時間）
+	expiresIn := 24 * 60 * 60
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(expiresIn) * time.Second)
 

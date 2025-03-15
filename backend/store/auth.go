@@ -9,7 +9,7 @@ import (
 // SaveAuthSession 認証セッションを保存
 func SaveAuthSession(sessionID string, session model.AuthSession) error {
 	// 認証セッションは10分間有効
-	return SaveSession("auth_session", sessionID, session, 10*time.Minute)
+	return SaveSession("auth_session", sessionID, session, 24*time.Hour)
 }
 
 // GetAuthSession 認証セッションを取得
