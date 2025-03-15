@@ -1,6 +1,10 @@
 "use client";
 
-import { ACCESS_TOKEN_KEY, ID_TOKEN_KEY } from "@/constants/auth";
+import {
+  ACCESS_TOKEN_KEY,
+  ID_TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+} from "@/constants/auth";
 import { getSessionToken } from "@/utils/api";
 import { checkIDToken } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -39,20 +43,22 @@ export default function CallbackComponent() {
           return;
         }
 
-        const { id_token, access_token } = await getSessionToken({
-          code,
-          code_verifier: savedCodeVerifier ?? "",
-          grant_type: "authorization_code",
-          client_id: "demo-store-3",
-          redirect_uri: `${window.location.origin}/callback`,
-        });
+        const { id_token, access_token, refresh_token } = await getSessionToken(
+          {
+            code,
+            code_verifier: savedCodeVerifier ?? "",
+            grant_type: "authorization_code",
+            client_id: "demo-store-3",
+            redirect_uri: `${window.location.origin}/callback`,
+          }
+        );
 
         sessionStorage.removeItem("sso_state");
         sessionStorage.removeItem("sso_code_verifier");
         sessionStorage.removeItem("sso_code_challenge");
         document.cookie = `${ID_TOKEN_KEY}=${id_token}; path=/`;
         document.cookie = `${ACCESS_TOKEN_KEY}=${access_token}; path=/`;
-
+        document.cookie = `${REFRESH_TOKEN_KEY}=${refresh_token}; path=/`;
         await wait(MIN_LOADING_TIME);
         router.push("/");
       } catch (err) {

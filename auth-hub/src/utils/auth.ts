@@ -1,6 +1,8 @@
-import { ID_TOKEN_KEY } from "@/constants/auth";
+import { AUTH_SESSION_KEY } from "@/constants/auth";
 
-export function checkIDToken(): boolean {
+export function checkAuthSession(): boolean {
   const cookies = document.cookie.split(";");
-  return cookies.some((cookie) => cookie.trim().startsWith(`${ID_TOKEN_KEY}=`));
+  return cookies.some((cookie) =>
+    cookie.trim().startsWith(`${AUTH_SESSION_KEY}=`)
+  );
 }

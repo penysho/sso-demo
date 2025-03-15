@@ -8,13 +8,14 @@ import (
 )
 
 var (
-	AllowedOrigin string
-	ClientIDs     []string
-	JWTSecret     []byte
+	AllowedOrigins        []string
+	ClientIDs             []string
+	JWTSecret             []byte
+	AuthSessionCookieName string
 )
 
 func Init() error {
-	AllowedOrigin = os.Getenv("CORS_ALLOWED_ORIGIN")
+	AllowedOrigins = strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
 	ClientIDs = strings.Split("demo-store-1,demo-store-2,demo-store-3", ",")
 
 	encodedSecret := os.Getenv("JWT_SECRET")
@@ -32,5 +33,9 @@ func Init() error {
 	}
 
 	JWTSecret = secret
+	AuthSessionCookieName = os.Getenv("AUTH_SESSION_COOKIE_NAME")
+	if AuthSessionCookieName == "" {
+		return fmt.Errorf("AUTH_SESSION_COOKIE_NAME environment variable is not set")
+	}
 	return nil
 }

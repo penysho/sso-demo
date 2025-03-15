@@ -1,4 +1,4 @@
-import { SessionRequest, SessionResponse, Tokens } from "@/types/session";
+import { SessionRequest, SessionResponse } from "@/types/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -8,7 +8,7 @@ if (!API_URL) {
 
 export async function authorize(
   request: SessionRequest,
-  tokens: Tokens
+  sessionId: string
 ): Promise<string> {
   const url = new URL(`${API_URL}/api/oauth/authorize`);
 
@@ -23,9 +23,8 @@ export async function authorize(
   const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${tokens.idToken}`,
-      "X-Access-Token": tokens.accessToken || "",
-      "X-Refresh-Token": tokens.refreshToken || "",
+      "X-Auth-Session": sessionId,
+      "Access-Control-Allow-Credentials": "true",
     },
   });
 
@@ -43,14 +42,10 @@ export async function authorize(
 export async function authenticate(
   email: string,
   password: string
-): Promise<{
-  id_token: string;
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-}> {
+): Promise<string> {
   const response = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -64,5 +59,5 @@ export async function authenticate(
     throw new Error(error.message || "Authentication failed");
   }
 
-  return response.json();
+  return response.text();
 }

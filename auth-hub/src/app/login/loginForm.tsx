@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  ACCESS_TOKEN_KEY,
-  ID_TOKEN_KEY,
-  REFRESH_TOKEN_KEY,
-} from "@/constants/auth";
-import { Tokens } from "@/types/session";
+import { AUTH_SESSION_KEY } from "@/constants/auth";
 import { authenticate, authorize } from "@/utils/api";
-import { checkIDToken } from "@/utils/auth";
+import { checkAuthSession } from "@/utils/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -84,46 +79,23 @@ export default function LoginForm() {
     },
   });
 
-  const getTokensFromCookies = useCallback((): Tokens => {
+  const getSessionIdFromCookie = useCallback(() => {
     const cookies = document.cookie.split("; ");
-
-    return {
-      idToken:
-        cookies
-          .find((row) => row.startsWith(`${ID_TOKEN_KEY}=`))
-          ?.split("=")[1] || undefined,
-      accessToken:
-        cookies
-          .find((row) => row.startsWith(`${ACCESS_TOKEN_KEY}=`))
-          ?.split("=")[1] || undefined,
-      refreshToken:
-        cookies
-          .find((row) => row.startsWith(`${REFRESH_TOKEN_KEY}=`))
-          ?.split("=")[1] || undefined,
-    };
+    return (
+      cookies
+        .find((row) => row.startsWith(`${AUTH_SESSION_KEY}=`))
+        ?.split("=")[1] || undefined
+    );
   }, []);
-
-  const saveTokensToCookies = useCallback(
-    (tokens: {
-      id_token: string;
-      access_token: string;
-      refresh_token: string;
-    }) => {
-      document.cookie = `${ID_TOKEN_KEY}=${tokens.id_token}; path=/; secure; samesite=lax`;
-      document.cookie = `${ACCESS_TOKEN_KEY}=${tokens.access_token}; path=/; secure; samesite=lax`;
-      document.cookie = `${REFRESH_TOKEN_KEY}=${tokens.refresh_token}; path=/; secure; samesite=lax`;
-    },
-    []
-  );
 
   const handleSSORedirect = useCallback(
     async (ssoParams: SSOParams) => {
       try {
         setIsLoading(true);
-        const tokens = getTokensFromCookies();
 
-        if (!tokens.idToken) {
-          throw new Error("IDトークンが見つかりません");
+        const sessionId = getSessionIdFromCookie();
+        if (!sessionId) {
+          throw new Error("セッションIDが見つかりません");
         }
 
         const authCode = await authorize(
@@ -135,7 +107,7 @@ export default function LoginForm() {
             response_type: ssoParams.responseType,
             scope: ssoParams.scope,
           },
-          tokens
+          sessionId
         );
 
         const finalRedirectUri = new URL(ssoParams.redirectUri);
@@ -150,12 +122,12 @@ export default function LoginForm() {
         setIsLoading(false);
       }
     },
-    [getTokensFromCookies]
+    [getSessionIdFromCookie]
   );
 
   useEffect(() => {
     const checkExistingSession = async () => {
-      if (checkIDToken()) {
+      if (checkAuthSession()) {
         const ssoParams = getSSOParams(searchParams);
 
         if (isSSOParamsValid(ssoParams)) {
@@ -174,8 +146,7 @@ export default function LoginForm() {
 
     try {
       setIsLoading(true);
-      const tokens = await authenticate(data.email, data.password);
-      saveTokensToCookies(tokens);
+      await authenticate(data.email, data.password);
 
       const ssoParams = getSSOParams(searchParams);
 

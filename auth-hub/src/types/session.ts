@@ -7,12 +7,6 @@ export interface SessionRequest {
   scope: string;
 }
 
-export interface Tokens {
-  idToken?: string;
-  accessToken?: string;
-  refreshToken?: string;
-}
-
 export interface SessionResponse {
   authorization_code: string;
 }

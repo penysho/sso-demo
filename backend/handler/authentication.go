@@ -78,21 +78,19 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// クライアントに認証セッションIDを返す
-	resp := model.LoginResponse{
-		SessionID: sessionID,
-		ExpiresIn: expiresIn,
+	// 認証セッションIDをCookieに保存（修正版）
+	cookie := &http.Cookie{
+		Name:     config.AuthSessionCookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: false,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   expiresIn,
 	}
+	http.SetCookie(w, cookie)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
 }
