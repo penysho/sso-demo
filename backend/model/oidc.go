@@ -14,9 +14,8 @@ type OidcAuthorizeResponse struct {
 
 type OidcSession struct {
 	AuthorizationCode   string    `json:"authorization_code"`
-	IDToken             string    `json:"id_token"`
-	AccessToken         string    `json:"access_token"`
-	RefreshToken        string    `json:"refresh_token"`
+	UserID              string    `json:"user_id"`
+	Email               string    `json:"email"`
 	ClientID            string    `json:"client_id"`
 	CodeChallenge       string    `json:"code_challenge"`
 	CodeChallengeMethod string    `json:"code_challenge_method"`

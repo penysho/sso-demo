@@ -26,29 +26,33 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorizationHeader := r.Header.Get("Authorization")
-	if authorizationHeader == "" {
-		log.Println("Missing authorization header")
-		http.Error(w, "Missing authorization header", http.StatusUnauthorized)
-		return
-	}
-	idToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
-	if idToken == "" {
-		log.Println("Invalid authorization header")
-		http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
+	// 認証セッションIDを取得
+	authSessionID := r.Header.Get("X-Auth-Session")
+	if authSessionID == "" {
+		log.Println("Missing auth session ID")
+		http.Error(w, "Missing auth session ID", http.StatusUnauthorized)
 		return
 	}
 
-	accessToken := r.Header.Get("X-Access-Token")
-	if accessToken == "" {
-		log.Println("Missing access token")
-		http.Error(w, "Missing access token", http.StatusUnauthorized)
+	// 認証セッションの有効性確認
+	authSession, err := store.GetAuthSession(authSessionID)
+	if err != nil {
+		log.Printf("Invalid auth session: %v", err)
+		http.Error(w, "Invalid auth session", http.StatusUnauthorized)
 		return
 	}
-	refreshToken := r.Header.Get("X-Refresh-Token")
-	if refreshToken == "" {
-		log.Println("Missing refresh token")
-		http.Error(w, "Missing refresh token", http.StatusUnauthorized)
+
+	// 有効期限切れ確認
+	if time.Now().After(authSession.ExpiresAt) {
+		log.Println("Auth session expired")
+		http.Error(w, "Auth session expired", http.StatusUnauthorized)
+		return
+	}
+
+	// ログイン状態確認
+	if !authSession.IsLoggedIn {
+		log.Println("User not logged in")
+		http.Error(w, "User not logged in", http.StatusUnauthorized)
 		return
 	}
 
@@ -85,17 +89,18 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 認可コードの生成
 	authCode, err := generateAuthorizationCode()
 	if err != nil {
 		http.Error(w, "Failed to generate authorization code", http.StatusInternalServerError)
 		return
 	}
 
+	// 認可コードセッションの作成 (ユーザー情報を含める)
 	session := model.OidcSession{
 		AuthorizationCode:   authCode,
-		IDToken:             idToken,
-		AccessToken:         accessToken,
-		RefreshToken:        refreshToken,
+		UserID:              authSession.UserID, // 認証済みユーザーID
+		Email:               authSession.Email,  // ユーザーのメールアドレス
 		ClientID:            clientID,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
@@ -116,7 +121,7 @@ func OidcAuthorize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", config.AllowedOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Access-Token, X-Refresh-Token")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Auth-Session")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
@@ -224,40 +229,49 @@ func handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// JWTトークンからメールアドレスを抽出
-	claims, err := utils.VerifyIDToken(session.IDToken)
-	if err != nil {
-		log.Printf("Invalid ID token: %v", err)
-		http.Error(w, "Invalid ID token", http.StatusBadRequest)
-		return
-	}
+	// セッションからユーザー情報を取得
+	userID := session.UserID
+	email := session.Email
 
-	email, ok := claims["email"].(string)
-	if !ok || email == "" {
-		log.Printf("Email not found in token claims")
-		http.Error(w, "Invalid token", http.StatusBadRequest)
-		return
-	}
+	// トークン生成
+	now := time.Now()
+	expiresIn := int64(3600)
 
-	// ユーザーを取得または作成
-	user, err := store.GetUserByEmail(email)
+	// IDトークンの生成
+	idToken, err := utils.GenerateIDToken(userID, email, now, expiresIn)
 	if err != nil {
-		log.Printf("Failed to get or create user: %v", err)
+		log.Printf("Failed to generate ID token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// リフレッシュトークンセッションを保存
+	// アクセストークンの生成
+	accessToken, err := utils.GenerateAccessToken(userID, now, expiresIn)
+	if err != nil {
+		log.Printf("Failed to generate access token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// リフレッシュトークンの生成
+	refreshToken, err := utils.GenerateRefreshToken(userID)
+	if err != nil {
+		log.Printf("Failed to generate refresh token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// クライアント固有のトークンセッションを保存
 	tokenSession := model.TokenSession{
-		UserID:       user.ID,
+		UserID:       userID,
 		ClientID:     clientID,
-		RefreshToken: session.RefreshToken,
+		RefreshToken: refreshToken,
 		CreatedAt:    time.Now(),
 		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
 		IsRevoked:    false,
 	}
 
-	if err := store.SaveTokenSession(session.RefreshToken, tokenSession); err != nil {
+	if err := store.SaveTokenSession(refreshToken, tokenSession); err != nil {
 		log.Printf("Failed to save token session: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -269,7 +283,7 @@ func handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 		// 処理は続行
 	}
 
-	sendTokenResponse(w, session.IDToken, session.AccessToken, session.RefreshToken)
+	sendTokenResponse(w, idToken, accessToken, refreshToken)
 }
 
 // リフレッシュトークングラントタイプの処理

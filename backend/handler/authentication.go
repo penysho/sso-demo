@@ -4,12 +4,21 @@ import (
 	"backend/config"
 	"backend/model"
 	"backend/store"
-	"backend/utils"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 )
+
+func generateSessionID() (string, error) {
+	bytes := make([]byte, 32) // 256ビットのランダムデータ
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
 
 func Authenticate(w http.ResponseWriter, r *http.Request) {
 	log.Println("Authenticate")
@@ -31,9 +40,6 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-	expiresIn := int64(3600) // 1時間
-
 	// 仮実装: ユーザーを取得または作成
 	user, err := store.GetOrCreateUser(req.Email)
 	if err != nil {
@@ -42,32 +48,40 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// IDトークンの生成
-	idToken, err := utils.GenerateIDToken(user.ID, user.Email, now, expiresIn)
+	// セッションIDの生成
+	sessionID, err := generateSessionID()
 	if err != nil {
-		http.Error(w, "Failed to generate ID token", http.StatusInternalServerError)
+		log.Printf("Failed to generate session ID: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// アクセストークンの生成
-	accessToken, err := utils.GenerateAccessToken(user.ID, now, expiresIn)
-	if err != nil {
-		http.Error(w, "Failed to generate access token", http.StatusInternalServerError)
+	// 認証セッション有効期限（10分）
+	expiresIn := 10 * 60
+	now := time.Now()
+	expiresAt := now.Add(time.Duration(expiresIn) * time.Second)
+
+	// 認証セッションの作成
+	authSession := model.AuthSession{
+		SessionID:  sessionID,
+		UserID:     user.ID,
+		Email:      user.Email,
+		CreatedAt:  now,
+		ExpiresAt:  expiresAt,
+		IsLoggedIn: true,
+	}
+
+	// 認証セッションの保存
+	if err := store.SaveAuthSession(sessionID, authSession); err != nil {
+		log.Printf("Failed to save auth session: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// リフレッシュトークンの生成
-	refreshToken, err := utils.GenerateRefreshToken(user.ID)
-	if err != nil {
-		http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
-		return
-	}
-
+	// クライアントに認証セッションIDを返す
 	resp := model.LoginResponse{
-		IDToken:      idToken,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    int(expiresIn),
+		SessionID: sessionID,
+		ExpiresIn: expiresIn,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
