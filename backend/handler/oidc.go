@@ -239,13 +239,21 @@ func handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ユーザーを取得または作成
+	user, err := store.GetUserByEmail(email)
+	if err != nil {
+		log.Printf("Failed to get or create user: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// リフレッシュトークンセッションを保存
 	tokenSession := model.TokenSession{
-		Email:        email,
+		UserID:       user.ID,
 		ClientID:     clientID,
 		RefreshToken: session.RefreshToken,
 		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour), // 30日の有効期限
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
 		IsRevoked:    false,
 	}
 
@@ -308,46 +316,62 @@ func handleRefreshTokenGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := store.GetUserByID(tokenSession.UserID)
+	if err != nil {
+		log.Printf("Failed to get user: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// 新しいアクセストークンとIDトークンを生成
-	newAccessToken, err := utils.GenerateAccessToken(tokenSession.Email, time.Now(), 3600)
+	newAccessToken, err := utils.GenerateAccessToken(
+		tokenSession.UserID,
+		time.Now(),
+		3600)
 	if err != nil {
 		log.Printf("Failed to generate new access token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	newIdToken, err := utils.GenerateIDToken(tokenSession.Email, time.Now(), 3600)
+	newIdToken, err := utils.GenerateIDToken(
+		tokenSession.UserID,
+		user.Email,
+		time.Now(),
+		3600)
 	if err != nil {
 		log.Printf("Failed to generate new ID token: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// 古いリフレッシュトークンを無効化
-	tokenSession.IsRevoked = true
-	if err := store.UpdateTokenSession(refreshToken, tokenSession); err != nil {
-		log.Printf("Warning: Failed to revoke old refresh token: %v", err)
-		// 処理は続行
+	// 新しいリフレッシュトークンを生成
+	newRefreshToken, err := utils.GenerateRefreshToken(
+		tokenSession.UserID)
+	if err != nil {
+		log.Printf("Failed to generate new refresh token: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 
 	// 新しいトークンセッションを保存
 	newTokenSession := model.TokenSession{
-		Email:        tokenSession.Email,
+		UserID:       tokenSession.UserID,
 		ClientID:     clientID,
-		RefreshToken: tokenSession.RefreshToken,
+		RefreshToken: newRefreshToken,
 		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour), // 30日の有効期限
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
 		IsRevoked:    false,
 	}
 
-	if err := store.SaveTokenSession(tokenSession.RefreshToken, newTokenSession); err != nil {
+	if err := store.SaveTokenSession(newRefreshToken, newTokenSession); err != nil {
 		log.Printf("Failed to save new token session: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// 新しいトークンでレスポンスを送信
-	sendTokenResponse(w, newIdToken, newAccessToken, tokenSession.RefreshToken)
+	sendTokenResponse(w, newIdToken, newAccessToken, newRefreshToken)
 }
 
 // トークンレスポンスを送信する共通関数

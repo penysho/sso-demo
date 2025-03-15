@@ -35,7 +35,7 @@ type OidcTokenResponse struct {
 
 // TokenSession はトークン情報を長期的に保存するためのモデル
 type TokenSession struct {
-	Email        string    `json:"email"`
+	UserID       string    `json:"user_id"`
 	ClientID     string    `json:"client_id"`
 	RefreshToken string    `json:"refresh_token"`
 	CreatedAt    time.Time `json:"created_at"`

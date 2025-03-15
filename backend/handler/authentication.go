@@ -3,6 +3,7 @@ package handler
 import (
 	"backend/config"
 	"backend/model"
+	"backend/store"
 	"backend/utils"
 	"encoding/json"
 	"log"
@@ -24,7 +25,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 仮実装：emailとpasswordが空でなければ認証OK
+	// 仮実装： emailとpasswordが空でなければ認証OK
 	if req.Email == "" || req.Password == "" {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -33,22 +34,30 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	expiresIn := int64(3600) // 1時間
 
+	// 仮実装: ユーザーを取得または作成
+	user, err := store.GetOrCreateUser(req.Email)
+	if err != nil {
+		log.Printf("Failed to get or create user: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// IDトークンの生成
-	idToken, err := utils.GenerateIDToken(req.Email, now, expiresIn)
+	idToken, err := utils.GenerateIDToken(user.ID, user.Email, now, expiresIn)
 	if err != nil {
 		http.Error(w, "Failed to generate ID token", http.StatusInternalServerError)
 		return
 	}
 
 	// アクセストークンの生成
-	accessToken, err := utils.GenerateAccessToken(req.Email, now, expiresIn)
+	accessToken, err := utils.GenerateAccessToken(user.ID, now, expiresIn)
 	if err != nil {
 		http.Error(w, "Failed to generate access token", http.StatusInternalServerError)
 		return
 	}
 
 	// リフレッシュトークンの生成
-	refreshToken, err := utils.GenerateRefreshToken(req.Email)
+	refreshToken, err := utils.GenerateRefreshToken(user.ID)
 	if err != nil {
 		http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
 		return
