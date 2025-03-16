@@ -22,9 +22,9 @@ export async function authorize(
 
   const response = await fetch(url.toString(), {
     method: "GET",
+    credentials: "include",
     headers: {
       "X-Auth-Session": sessionId,
-      "Access-Control-Allow-Credentials": "true",
     },
   });
 

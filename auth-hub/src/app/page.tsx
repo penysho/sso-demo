@@ -1,33 +1,33 @@
 "use client";
 
-import { ID_TOKEN_KEY } from "@/constants/auth";
+import { AUTH_SESSION_KEY } from "@/constants/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [idToken, setIdToken] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string>("");
   const router = useRouter();
 
   useEffect(() => {
     const cookies = document.cookie.split(";");
-    const token = cookies
-      .find((cookie) => cookie.trim().startsWith(`${ID_TOKEN_KEY}=`))
+    const sessionId = cookies
+      .find((cookie) => cookie.trim().startsWith(`${AUTH_SESSION_KEY}=`))
       ?.split("=")[1];
 
-    if (!token) {
+    if (!sessionId) {
       router.push("/login");
       return;
     }
 
-    setIdToken(token);
     setIsLoggedIn(true);
+    setSessionId(sessionId);
   }, [router]);
 
   const handleLogout = () => {
-    document.cookie = `${ID_TOKEN_KEY}=; path=/; max-age=0`;
+    document.cookie = `${AUTH_SESSION_KEY}=; path=/; max-age=0`;
     setIsLoggedIn(false);
-    setIdToken("");
+    setSessionId("");
     router.push("/login");
   };
 
@@ -64,7 +64,7 @@ export default function HomePage() {
                 アカウント情報
               </h2>
               <p className="text-zinc-700 font-mono text-sm">
-                IDトークン: {idToken || "読み込み中..."}
+                セッションID: {sessionId || "読み込み中..."}
               </p>
             </div>
           </div>

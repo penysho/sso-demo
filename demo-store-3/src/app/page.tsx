@@ -1,93 +1,14 @@
 "use client";
 
-import { ACCESS_TOKEN_KEY, ID_TOKEN_KEY } from "@/constants/auth";
-import { generateState } from "@/utils/auth";
-import { generateChallenge } from "@/utils/pkce";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import Header from "@/components/Header";
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [, setIDToken] = useState<string>("");
-  const router = useRouter();
-
-  useEffect(() => {
-    const cookies = document.cookie.split(";");
-    const hasToken =
-      cookies.some((cookie) => cookie.trim().startsWith(`${ID_TOKEN_KEY}=`)) &&
-      cookies.some((cookie) =>
-        cookie.trim().startsWith(`${ACCESS_TOKEN_KEY}=`)
-      );
-    setIsLoggedIn(hasToken);
-  }, []);
-
-  const handleAuthHubLogin = async () => {
-    const state = generateState();
-    sessionStorage.setItem("sso_state", state);
-    const { codeVerifier, codeChallenge } = await generateChallenge();
-    sessionStorage.setItem("sso_code_verifier", codeVerifier);
-    sessionStorage.setItem("sso_code_challenge", codeChallenge);
-
-    const authHubBaseUrl = process.env.NEXT_PUBLIC_AUTH_HUB_URL;
-    if (!authHubBaseUrl) {
-      console.error("AUTH_HUB_URLが設定されていません");
-      return;
-    }
-
-    const authHubLoginUrl = new URL("/login", authHubBaseUrl);
-
-    authHubLoginUrl.searchParams.set("response_type", "code");
-    authHubLoginUrl.searchParams.set("scope", "openid profile email");
-
-    authHubLoginUrl.searchParams.set("client_id", "demo-store-3");
-    authHubLoginUrl.searchParams.set("state", state);
-    authHubLoginUrl.searchParams.set(
-      "redirect_uri",
-      `${window.location.origin}/callback`
-    );
-    authHubLoginUrl.searchParams.set("code_challenge", codeChallenge);
-    authHubLoginUrl.searchParams.set("code_challenge_method", "S256");
-
-    window.location.href = authHubLoginUrl.toString();
-  };
-
-  const handleLogout = () => {
-    document.cookie = `${ID_TOKEN_KEY}=; path=/; max-age=0`;
-    document.cookie = `${ACCESS_TOKEN_KEY}=; path=/; max-age=0`;
-    setIsLoggedIn(false);
-    setIDToken("");
-    router.push("/");
-  };
-
   return (
-    <div className="min-h-screen bg-white">
-      {/* ヘッダー */}
-      <header className="bg-teal-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-bold">Demo Store 3</h1>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center text-sm">
-                <span
-                  className={`w-2 h-2 rounded-full mr-2 ${
-                    isLoggedIn ? "bg-teal-400" : "bg-teal-700"
-                  }`}
-                />
-                {isLoggedIn ? "ログイン中" : "未ログイン"}
-              </span>
-              <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-teal-800 hover:bg-teal-700 transition-colors duration-150"
-                onClick={isLoggedIn ? handleLogout : handleAuthHubLogin}
-              >
-                {isLoggedIn ? "ログアウト" : "ログイン"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-100">
+      <Header />
 
       {/* メインコンテンツ */}
-      <main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ヒーローセクション */}
         <div className="bg-gradient-to-b from-teal-50 to-white py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

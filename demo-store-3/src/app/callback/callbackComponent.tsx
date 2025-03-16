@@ -6,7 +6,7 @@ import {
   REFRESH_TOKEN_KEY,
 } from "@/constants/auth";
 import { getSessionToken } from "@/utils/api";
-import { checkIDToken } from "@/utils/auth";
+import { isAuthenticated } from "@/utils/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,29 +20,29 @@ export default function CallbackComponent() {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    if (checkIDToken()) {
+    if (isAuthenticated()) {
       router.push("/");
       return;
     }
 
     const handleCallback = async () => {
+      const code = searchParams.get("code");
+      const state = searchParams.get("state");
+
+      const savedState = sessionStorage.getItem("sso_state");
+      const savedCodeVerifier = sessionStorage.getItem("sso_code_verifier");
+
+      if (!code || !state) {
+        setError("必要なパラメータが不足しています");
+        return;
+      }
+
+      if (state !== savedState) {
+        setError("不正なリクエストです");
+        return;
+      }
+
       try {
-        const code = searchParams.get("code");
-        const state = searchParams.get("state");
-
-        const savedState = sessionStorage.getItem("sso_state");
-        const savedCodeVerifier = sessionStorage.getItem("sso_code_verifier");
-
-        if (!code || !state) {
-          setError("必要なパラメータが不足しています");
-          return;
-        }
-
-        if (state !== savedState) {
-          setError("不正なリクエストです");
-          return;
-        }
-
         const { id_token, access_token, refresh_token } = await getSessionToken(
           {
             code,
@@ -53,9 +53,6 @@ export default function CallbackComponent() {
           }
         );
 
-        sessionStorage.removeItem("sso_state");
-        sessionStorage.removeItem("sso_code_verifier");
-        sessionStorage.removeItem("sso_code_challenge");
         document.cookie = `${ID_TOKEN_KEY}=${id_token}; path=/`;
         document.cookie = `${ACCESS_TOKEN_KEY}=${access_token}; path=/`;
         document.cookie = `${REFRESH_TOKEN_KEY}=${refresh_token}; path=/`;
@@ -64,6 +61,10 @@ export default function CallbackComponent() {
       } catch (err) {
         console.error(err);
         setError("認証処理中にエラーが発生しました");
+      } finally {
+        sessionStorage.removeItem("sso_state");
+        sessionStorage.removeItem("sso_code_verifier");
+        sessionStorage.removeItem("sso_code_challenge");
       }
     };
 

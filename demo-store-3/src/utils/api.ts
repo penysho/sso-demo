@@ -34,3 +34,27 @@ export async function getSessionToken(
 
   return (await response.json()) as SessionTokenResponse;
 }
+
+export async function revokeToken(params: {
+  token: string;
+  token_type_hint: string;
+  client_id: string;
+}) {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/oauth/revoke`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams(params),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to revoke token: ${errorText}`);
+  }
+
+  return true;
+}
