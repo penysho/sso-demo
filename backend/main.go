@@ -25,8 +25,8 @@ func main() {
 	}
 
 	http.HandleFunc("/health", handler.Health)
-	http.HandleFunc("/api/oauth/authorize", middleware.Cors(handler.OidcAuthorize))
-	http.HandleFunc("/api/oauth/token", middleware.Cors(handler.OidcToken))
+	http.HandleFunc("/api/oauth/authorize", middleware.Cors(handler.Authorize))
+	http.HandleFunc("/api/oauth/token", middleware.Cors(handler.Token))
 	http.HandleFunc("/api/auth/login", middleware.Cors(handler.Authenticate))
 	http.HandleFunc("/api/oauth/revoke", middleware.Cors(handler.RevokeToken))
 	http.HandleFunc("/.well-known/jwks.json", handler.JWKS)

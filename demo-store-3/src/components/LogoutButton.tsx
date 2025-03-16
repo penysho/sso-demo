@@ -3,13 +3,22 @@
 import { logout } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 
-export default function LogoutButton() {
+type LogoutButtonProps = {
+  onLogoutSuccess?: () => void;
+};
+
+export default function LogoutButton({ onLogoutSuccess }: LogoutButtonProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
       const success = await logout();
       if (success) {
+        // コールバック関数が提供されている場合は呼び出す
+        if (onLogoutSuccess) {
+          onLogoutSuccess();
+        }
+
         // ログアウト後にホーム画面またはログイン画面にリダイレクト
         router.push("/");
         router.refresh(); // ページの状態を更新

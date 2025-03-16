@@ -2,27 +2,8 @@ package store
 
 import (
 	"backend/model"
-	"fmt"
 	"time"
 )
-
-// OidcSessionの保存・取得用ラッパー関数
-func SaveOidcSession(sessionID string, session model.OidcSession) error {
-	return SaveSession("oidc_session", sessionID, session, 5*time.Minute)
-}
-
-// OidcSessionの取得用ラッパー関数
-func GetOidcSession(sessionID string) (*model.OidcSession, error) {
-	if len(sessionID) != 64 {
-		return nil, fmt.Errorf("invalid session id format")
-	}
-	return GetSession[model.OidcSession]("oidc_session", sessionID)
-}
-
-// OidcSessionの削除用ラッパー関数
-func DeleteOidcSession(sessionID string) error {
-	return DeleteSession("oidc_session", sessionID)
-}
 
 // TokenSessionの保存・取得用ラッパー関数
 func SaveTokenSession(tokenID string, session model.TokenSession) error {
