@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as route53 from "aws-cdk-lib/aws-route53";
+import * as targets from "aws-cdk-lib/aws-route53-targets";
 import { currentEnvConfig, deployEnv } from "../config/config";
 import { VpcStack } from "./vpc";
 
@@ -74,14 +75,19 @@ export class ElbStack extends cdk.Stack {
     loadBalancer.addSecurityGroup(defaultElbSg);
     this.LoadBalancer = loadBalancer;
 
-    new route53.CfnRecordSet(this, "RecordSet", {
-      name: `sso-demo-${deployEnv}-api.pesh-igpjt.com`,
-      hostedZoneId: currentEnvConfig.apiDomainHostedZoneId,
-      type: "A",
-      aliasTarget: {
-        dnsName: this.LoadBalancer.loadBalancerDnsName,
-        hostedZoneId: this.LoadBalancer.loadBalancerCanonicalHostedZoneId,
-      },
+    const hostedZone = route53.HostedZone.fromHostedZoneId(
+      this,
+      "HostedZone",
+      currentEnvConfig.apiDomainHostedZoneId
+    );
+
+    new route53.ARecord(this, "RecordSet", {
+      recordName: `sso-demo-${deployEnv}-api`,
+      zone: hostedZone,
+      target: route53.RecordTarget.fromAlias(
+        new targets.LoadBalancerTarget(this.LoadBalancer)
+      ),
+      ttl: cdk.Duration.minutes(5),
     });
   }
 }
