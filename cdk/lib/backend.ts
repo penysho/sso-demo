@@ -75,6 +75,8 @@ export class BackendStack extends cdk.Stack {
       "Elb443Listener",
       {
         loadBalancer: props.elbStack.loadBalancer,
+        // This creates a security group that allows access from the public
+        open: true,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
           403,
           { contentType: "text/plain" }
@@ -94,6 +96,7 @@ export class BackendStack extends cdk.Stack {
       "Elb80Listener",
       {
         loadBalancer: props.elbStack.loadBalancer,
+        open: false,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
           403,
           { contentType: "text/plain" }
@@ -108,6 +111,7 @@ export class BackendStack extends cdk.Stack {
       "GreenListener",
       {
         loadBalancer: props.elbStack.loadBalancer,
+        open: false,
         port: 10443,
         protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
@@ -295,10 +299,8 @@ export class BackendStack extends cdk.Stack {
       },
       enableExecuteCommand: true,
       assignPublicIp: true,
-      securityGroups: [
-        props.elbStack.elbTargetSg,
-        props.elasticacheStack.cacheClientSg,
-      ],
+      // Security groups that allow communication from the ALB to the container are automatically granted
+      securityGroups: [props.elasticacheStack.cacheClientSg],
       vpcSubnets: {
         subnets: publicSubnets.subnets,
       },
