@@ -25,7 +25,6 @@ export interface EnvConfig {
   apiDomainHostedZoneId: string;
   frontendDomainHostedZoneId: string;
   certificateArn: string;
-  defaultElbSgId: string;
   branch: string;
   githubToken: string;
 }
@@ -38,7 +37,6 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
-    defaultElbSgId: "sg-0781f96eb35b3aaad",
     branch: "main",
     githubToken: "",
   },
@@ -49,7 +47,6 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
-    defaultElbSgId: "sg-0781f96eb35b3aaad",
     branch: "main",
     githubToken: "",
   },
@@ -60,7 +57,6 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     frontendDomainHostedZoneId: "Z0792931131UPZVS92DMG",
     certificateArn:
       "arn:aws:acm:ap-northeast-1:551152530614:certificate/78e1479b-2bb2-4f89-8836-a8ff91227dfb",
-    defaultElbSgId: "sg-0781f96eb35b3aaad",
     branch: "main",
     githubToken: "",
   },
