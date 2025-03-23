@@ -44,7 +44,7 @@ jobs:
           node-version: 22.8
 
       - name: Cache CDK Dependency
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-cdk-dependency
         env:
           cache-name: cache-cdk-dependency
@@ -110,9 +110,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
 
       - name: Fetch TaskDefinition ARN
+        env:
+          FAMILY_PREFIX: sso-demo-backend-${{ inputs.environment }}
         run: |
           export task_definition_arn=$(aws ecs list-task-definitions \
-          --family-prefix sso-demo-backend-${{ inputs.environment }} \
+          --family-prefix ${{ env.FAMILY_PREFIX }} \
           --sort DESC \
           --query 'taskDefinitionArns[0]' \
           --region ap-northeast-1 \
@@ -120,9 +122,15 @@ jobs:
           echo "TASK_DEFINITION_ARN=${task_definition_arn}" >> $GITHUB_ENV
 
       - name: Deploy app with CodeDeploy Blue/Green deployment
+        env:
+          APPLICATION_NAME: sso-demo-${{ inputs.environment }}
+          DEPLOYMENT_GROUP_NAME: sso-demo-${{ inputs.environment }}-group1
+          TASK_DEFINITION_ARN: ${{ env.TASK_DEFINITION_ARN }}
+          CONTAINER_NAME: backend
+          CONTAINER_PORT: 8080
         run: |
           aws deploy create-deployment \
-          --application-name sso-demo-${{ inputs.environment }} \
-          --deployment-group-name sso-demo-${{ inputs.environment }}-group1 \
-          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"backend\",\"ContainerPort\":8080}}}}]}"}}' \
+          --application-name ${{ env.APPLICATION_NAME }} \
+          --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
+          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"${{ env.CONTAINER_NAME }}\",\"ContainerPort\":${{ env.CONTAINER_PORT }}}}}]}"}}' \
           --region ap-northeast-1
