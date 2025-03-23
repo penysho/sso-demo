@@ -17,11 +17,11 @@ export class ElbStack extends cdk.Stack {
   /**
    * This is the ARN of the ALB for applications.
    */
-  public readonly LoadBalancer: elasticloadbalancingv2.IApplicationLoadBalancer;
+  public readonly loadBalancer: elasticloadbalancingv2.IApplicationLoadBalancer;
   /**
    * This is the security group for the ELB target group.
    */
-  public readonly ElbTargetSg: ec2.ISecurityGroup;
+  public readonly elbTargetSg: ec2.ISecurityGroup;
 
   public constructor(scope: cdk.App, id: string, props: ElbStackProps) {
     super(scope, id, props);
@@ -36,18 +36,18 @@ export class ElbStack extends cdk.Stack {
         "This security group is allowed in the security group of the resource set in the Target Group.",
     });
 
-    this.ElbTargetSg = new ec2.SecurityGroup(this, "ElbTargetSg", {
+    this.elbTargetSg = new ec2.SecurityGroup(this, "ElbTargetSg", {
       vpc,
       allowAllOutbound: true,
       description:
         "This security group allows interaction with the ELBs set up in the target group. It is also allowed in the security group of the RDS to which the connection target is connected.",
     });
-    this.ElbTargetSg.addIngressRule(
+    this.elbTargetSg.addIngressRule(
       ec2.Peer.securityGroupId(ElbSg.securityGroupId),
       ec2.Port.tcp(80),
       "Allow inbound from ELB security group"
     );
-    this.ElbTargetSg.addIngressRule(
+    this.elbTargetSg.addIngressRule(
       ec2.Peer.securityGroupId(ElbSg.securityGroupId),
       ec2.Port.tcp(443),
       "Allow inbound from ELB security group"
@@ -73,7 +73,7 @@ export class ElbStack extends cdk.Stack {
     );
     loadBalancer.addSecurityGroup(ElbSg);
     loadBalancer.addSecurityGroup(defaultElbSg);
-    this.LoadBalancer = loadBalancer;
+    this.loadBalancer = loadBalancer;
 
     const hostedZone = route53.HostedZone.fromHostedZoneId(
       this,
@@ -85,7 +85,7 @@ export class ElbStack extends cdk.Stack {
       recordName: `sso-demo-${deployEnv}-api`,
       zone: hostedZone,
       target: route53.RecordTarget.fromAlias(
-        new targets.LoadBalancerTarget(this.LoadBalancer)
+        new targets.LoadBalancerTarget(this.loadBalancer)
       ),
       ttl: cdk.Duration.minutes(5),
     });

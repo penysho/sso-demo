@@ -38,15 +38,15 @@ export class BackendStack extends cdk.Stack {
   /**
    * Listener ARN for port 80 used by ALB in applications.
    */
-  public readonly Elb80Listener: elasticloadbalancingv2.IApplicationListener;
+  public readonly elb80Listener: elasticloadbalancingv2.IApplicationListener;
   /**
    * Listener ARN for port 443 used by ALB in applications.
    */
-  public readonly Elb443Listener: elasticloadbalancingv2.IApplicationListener;
+  public readonly elb443Listener: elasticloadbalancingv2.IApplicationListener;
   /**
    * This is the group ID of the security group for the ALB target of applications.
    */
-  public readonly GreenListener: elasticloadbalancingv2.IApplicationListener;
+  public readonly greenListener: elasticloadbalancingv2.IApplicationListener;
   /**
    * Blue Target Group
    */
@@ -70,11 +70,11 @@ export class BackendStack extends cdk.Stack {
     // Resources
 
     // Listeners
-    this.Elb443Listener = new elasticloadbalancingv2.ApplicationListener(
+    this.elb443Listener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "Elb443Listener",
       {
-        loadBalancer: props.elbStack.LoadBalancer,
+        loadBalancer: props.elbStack.loadBalancer,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
           403,
           { contentType: "text/plain" }
@@ -89,11 +89,11 @@ export class BackendStack extends cdk.Stack {
       }
     );
 
-    this.Elb80Listener = new elasticloadbalancingv2.ApplicationListener(
+    this.elb80Listener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "Elb80Listener",
       {
-        loadBalancer: props.elbStack.LoadBalancer,
+        loadBalancer: props.elbStack.loadBalancer,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
           403,
           { contentType: "text/plain" }
@@ -103,11 +103,11 @@ export class BackendStack extends cdk.Stack {
       }
     );
 
-    this.GreenListener = new elasticloadbalancingv2.ApplicationListener(
+    this.greenListener = new elasticloadbalancingv2.ApplicationListener(
       this,
       "GreenListener",
       {
-        loadBalancer: props.elbStack.LoadBalancer,
+        loadBalancer: props.elbStack.loadBalancer,
         port: 10443,
         protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
@@ -132,8 +132,14 @@ export class BackendStack extends cdk.Stack {
         },
       }
     );
-    this.Elb443Listener.addTargetGroups(`${projectName}-${deployEnv}-blue`, {
-      targetGroups: [this.blueTargetGroup],
+    this.elb443Listener.addAction(`${projectName}-${deployEnv}-blue`, {
+      priority: 1,
+      conditions: [
+        elasticloadbalancingv2.ListenerCondition.pathPatterns(["*"]),
+      ],
+      action: elasticloadbalancingv2.ListenerAction.forward([
+        this.blueTargetGroup,
+      ]),
     });
 
     this.greenTargetGroup = new elasticloadbalancingv2.ApplicationTargetGroup(
@@ -150,8 +156,14 @@ export class BackendStack extends cdk.Stack {
         },
       }
     );
-    this.GreenListener.addTargetGroups(`${projectName}-${deployEnv}-green`, {
-      targetGroups: [this.greenTargetGroup],
+    this.greenListener.addAction(`${projectName}-${deployEnv}-green`, {
+      priority: 1,
+      conditions: [
+        elasticloadbalancingv2.ListenerCondition.pathPatterns(["*"]),
+      ],
+      action: elasticloadbalancingv2.ListenerAction.forward([
+        this.greenTargetGroup,
+      ]),
     });
 
     // Cluster
@@ -284,14 +296,13 @@ export class BackendStack extends cdk.Stack {
       enableExecuteCommand: true,
       assignPublicIp: true,
       securityGroups: [
-        props.elbStack.ElbTargetSg,
+        props.elbStack.elbTargetSg,
         props.elasticacheStack.cacheClientSg,
       ],
       vpcSubnets: {
         subnets: publicSubnets.subnets,
       },
     });
-    service.attachToApplicationTargetGroup(this.blueTargetGroup);
     this.service = service;
   }
 }

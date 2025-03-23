@@ -86,10 +86,10 @@ export class CiStack extends cdk.Stack {
               },
             ],
             prodTrafficRoute: {
-              listenerArns: [props.backendStack.Elb443Listener.listenerArn],
+              listenerArns: [props.backendStack.elb443Listener.listenerArn],
             },
             testTrafficRoute: {
-              listenerArns: [props.backendStack.GreenListener.listenerArn],
+              listenerArns: [props.backendStack.greenListener.listenerArn],
             },
           },
         ],
