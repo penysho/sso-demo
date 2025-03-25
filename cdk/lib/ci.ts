@@ -17,84 +17,33 @@ export class CiStack extends cdk.Stack {
     super(scope, id, props);
 
     // CodeDeploy
-    const codeDeploy = new codedeploy.CfnApplication(this, "CodeDeploy", {
-      applicationName: `${projectName}-${deployEnv}`,
-      computePlatform: "ECS",
-    });
-
-    const codeDeployServiceRole = new iam.CfnRole(
+    const application = new codedeploy.EcsApplication(
       this,
-      "CodeDeployServiceRole",
+      "CodeDeployApplication",
       {
-        roleName: `${projectName}-${deployEnv}-codedeploy-service-role`,
-        managedPolicyArns: ["arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"],
-        assumeRolePolicyDocument: {
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Effect: "Allow",
-              Principal: {
-                Service: "codedeploy.amazonaws.com",
-              },
-              Action: "sts:AssumeRole",
-            },
-          ],
-        },
+        applicationName: `${projectName}-${deployEnv}`,
       }
     );
-    codeDeployServiceRole.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
 
     // CodeDeploy DeploymentGroup
-    new codedeploy.CfnDeploymentGroup(this, "DeploymentGroup", {
-      applicationName: codeDeploy.ref,
-      autoRollbackConfiguration: {
-        enabled: true,
-        events: ["DEPLOYMENT_FAILURE"],
+    new codedeploy.EcsDeploymentGroup(this, "DeploymentGroup", {
+      application,
+      autoRollback: {
+        // CodeDeploy will automatically roll back if the 8-hour approval period times out and the deployment stops
+        stoppedDeployment: true,
       },
-      blueGreenDeploymentConfiguration: {
-        deploymentReadyOption: {
-          actionOnTimeout: "STOP_DEPLOYMENT",
-          waitTimeInMinutes: 30,
-        },
-        terminateBlueInstancesOnDeploymentSuccess: {
-          action: "TERMINATE",
-          terminationWaitTimeInMinutes: 30,
-        },
+      blueGreenDeploymentConfig: {
+        // The deployment will wait for approval for up to 8 hours before stopping the deployment
+        deploymentApprovalWaitTime: cdk.Duration.hours(8),
+        terminationWaitTime: cdk.Duration.minutes(30),
+        blueTargetGroup: props.backendStack.blueTargetGroup,
+        greenTargetGroup: props.backendStack.greenTargetGroup,
+        listener: props.backendStack.elb443Listener,
+        testListener: props.backendStack.greenListener,
       },
-      deploymentConfigName: "CodeDeployDefault.ECSAllAtOnce",
-      deploymentGroupName: `${projectName}-${deployEnv}-group1`,
-      deploymentStyle: {
-        deploymentOption: "WITH_TRAFFIC_CONTROL",
-        deploymentType: "BLUE_GREEN",
-      },
-      ecsServices: [
-        {
-          clusterName: props.backendStack.cluster.clusterName,
-          serviceName: props.backendStack.service.serviceName,
-        },
-      ],
-      loadBalancerInfo: {
-        targetGroupPairInfoList: [
-          {
-            targetGroups: [
-              {
-                name: props.backendStack.blueTargetGroup.targetGroupName,
-              },
-              {
-                name: props.backendStack.greenTargetGroup.targetGroupName,
-              },
-            ],
-            prodTrafficRoute: {
-              listenerArns: [props.backendStack.elb443Listener.listenerArn],
-            },
-            testTrafficRoute: {
-              listenerArns: [props.backendStack.greenListener.listenerArn],
-            },
-          },
-        ],
-      },
-      serviceRoleArn: codeDeployServiceRole.attrArn,
+      deploymentConfig: codedeploy.EcsDeploymentConfig.ALL_AT_ONCE,
+      deploymentGroupName: `${projectName}-${deployEnv}`,
+      service: props.backendStack.service,
     });
 
     // OIDC Provider

@@ -3,7 +3,7 @@ import { CfnApp, CfnBranch, CfnDomain } from "aws-cdk-lib/aws-amplify";
 import { BuildSpec } from "aws-cdk-lib/aws-codebuild";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { HostedZone } from "aws-cdk-lib/aws-route53";
-import { currentEnvConfig, deployEnv } from "../config/config";
+import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { ElbStack } from "./elb";
 
 interface FrontendStackProps extends cdk.StackProps {
@@ -17,9 +17,8 @@ export class FrontendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
-    const hostedZone = HostedZone.fromHostedZoneAttributes(this, "HostedZone", {
-      hostedZoneId: currentEnvConfig.frontendDomainHostedZoneId,
-      zoneName: "penysho.net",
+    const hostedZone = HostedZone.fromLookup(this, "HostedZone", {
+      domainName: currentEnvConfig.frontendDomain,
     });
 
     const amplifyRole = new iam.Role(this, "AmplifyRole", {
@@ -43,7 +42,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
+          value: `https://${projectName}-${deployEnv}-api.pesh-igpjt.com`,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -91,7 +90,7 @@ export class FrontendStack extends cdk.Stack {
 
     new CfnDomain(this, "AuthHubDomain", {
       appId: authHubAmplify.attrAppId,
-      domainName: `sso-demo-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
+      domainName: `${projectName}-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
       enableAutoSubDomain: true,
       subDomainSettings: [
         {
@@ -112,11 +111,11 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `https://sso-demo-${deployEnv}-api.pesh-igpjt.com`,
+          value: `https://${projectName}-${deployEnv}-api.pesh-igpjt.com`,
         },
         {
           name: "NEXT_PUBLIC_AUTH_HUB_URL",
-          value: `https://sso-demo-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
+          value: `https://${projectName}-${deployEnv}-auth-hub.${hostedZone.zoneName}`,
         },
       ],
       repository: "https://github.com/penysho/sso-demo",
