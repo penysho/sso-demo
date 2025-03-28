@@ -72,9 +72,9 @@ export class ElasticacheStack extends cdk.Stack {
       this,
       "RedisReplicationGroup",
       {
-        // authToken: this.redisSecret
-        //   .secretValueFromJson("password")
-        //   .unsafeUnwrap(),
+        authToken: this.redisSecret
+          .secretValueFromJson("password")
+          .unsafeUnwrap(),
         replicationGroupDescription: `${projectName}-${deployEnv} Replication group`,
         engine: "valkey",
         engineVersion: "7.2",

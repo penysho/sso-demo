@@ -283,6 +283,11 @@ export class BackendStack extends cdk.Stack {
         .unsafeUnwrap()
     );
     container.addEnvironment("CORS_ALLOWED_ORIGIN", "*");
+    container.addEnvironment("JWT_SECRET", currentEnvConfig.jwtSecret);
+    container.addEnvironment(
+      "AUTH_SESSION_COOKIE_NAME",
+      "auth_hub_auth_session"
+    );
 
     // Service
     const service = new ecs.FargateService(this, "Service", {

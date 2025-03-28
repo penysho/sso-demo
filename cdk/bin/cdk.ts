@@ -19,6 +19,8 @@ const envProps = {
 // Get Value from context
 const githubToken = app.node.tryGetContext("githubToken");
 currentEnvConfig.githubToken = githubToken;
+const jwtSecret = app.node.tryGetContext("jwtSecret");
+currentEnvConfig.jwtSecret = jwtSecret;
 const backendImageTag = app.node.tryGetContext("backendImageTag");
 currentEnvConfig.backendImageTag = backendImageTag;
 const isApplicationDeploy = app.node.tryGetContext("isApplicationDeploy");

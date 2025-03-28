@@ -86,7 +86,7 @@ jobs:
         if: ${{ !contains(github.event_name , 'pull_request') }}
         run: |
           cd cdk
-          npx cdk deploy --all --require-approval never -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c isApplicationDeploy=${{ inputs.is_application_deploy }}
+          npx cdk deploy --all --require-approval never -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c isApplicationDeploy=${{ inputs.is_application_deploy }} -c jwtSecret=${{ secrets.JWT_SECRET }}
 
   deploy-application:
     name: Deploy Application
