@@ -19,6 +19,8 @@ const envProps = {
 // Get Value from context
 const githubToken = app.node.tryGetContext("githubToken");
 currentEnvConfig.githubToken = githubToken;
+const jwtSecret = app.node.tryGetContext("jwtSecret");
+currentEnvConfig.jwtSecret = jwtSecret;
 const backendImageTag = app.node.tryGetContext("backendImageTag");
 currentEnvConfig.backendImageTag = backendImageTag;
 const isApplicationDeploy = app.node.tryGetContext("isApplicationDeploy");
@@ -28,7 +30,7 @@ currentEnvConfig.isApplicationDeploy = isApplicationDeploy;
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});
 
 const elbStack = new ElbStack(app, `${projectName}-${deployEnv}-elb`, {
-  ...envProps,
+  env: envProps,
   vpcStack: vpcStack,
 });
 
@@ -36,7 +38,7 @@ const elasticacheStack = new ElasticacheStack(
   app,
   `${projectName}-${deployEnv}-elasticache`,
   {
-    ...envProps,
+    env: envProps,
     vpcStack: vpcStack,
   }
 );
@@ -45,7 +47,7 @@ const backendStack = new BackendStack(
   app,
   `${projectName}-${deployEnv}-backend`,
   {
-    ...envProps,
+    env: envProps,
     vpcStack: vpcStack,
     elbStack: elbStack,
     elasticacheStack: elasticacheStack,
@@ -53,11 +55,11 @@ const backendStack = new BackendStack(
 );
 
 new CiStack(app, `${projectName}-${deployEnv}-ci`, {
-  ...envProps,
+  env: envProps,
   backendStack: backendStack,
 });
 
 new FrontendStack(app, `${projectName}-${deployEnv}-frontend`, {
-  ...envProps,
+  env: envProps,
   elbStack: elbStack,
 });

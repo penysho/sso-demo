@@ -1,0 +1,65 @@
+name: Check CDK Diff
+
+on:
+  pull_request:
+
+jobs:
+  check-cdk-diff:
+    name: Check CDK Diff
+    runs-on: ubuntu-latest
+    # Explicitly specify a secret to prevent log output.
+    env:
+      jwt_secret: ${{ secrets.JWT_SECRET }}
+      amplify_github_token: ${{ secrets.AMPLIFY_GITHUB_TOKEN }}
+    environment: tst
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 22.8
+
+      - name: Cache CDK Dependency
+        uses: actions/cache@v4
+        id: cache-cdk-dependency
+        env:
+          cache-name: cache-cdk-dependency
+        with:
+          path: cdk/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('cdk/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install CDK Dependency
+        if: ${{ steps.cache-cdk-dependency.outputs.cache-hit != 'true' }}
+        run: |
+          cd cdk
+          npm install
+
+      - name: Get latest image tag
+        env:
+          ECR_REPOSITORY_NAME: sso-demo-tst
+        run: |
+          export latest_image_tag=$(aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
+            --region ap-northeast-1 \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+            --output text)
+          echo "BACKEND_IMAGE_TAG=${latest_image_tag}" >> $GITHUB_ENV
+
+      - name: CDK Diff Check
+        run: |
+          cd cdk
+          npx cdk diff

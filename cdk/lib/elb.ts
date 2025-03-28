@@ -37,11 +37,9 @@ export class ElbStack extends cdk.Stack {
     );
     this.loadBalancer = loadBalancer;
 
-    const hostedZone = route53.HostedZone.fromHostedZoneId(
-      this,
-      "HostedZone",
-      currentEnvConfig.apiDomainHostedZoneId
-    );
+    const hostedZone = route53.HostedZone.fromLookup(this, "HostedZone", {
+      domainName: currentEnvConfig.apiDomain,
+    });
 
     new route53.ARecord(this, "RecordSet", {
       recordName: `${projectName}-${deployEnv}-api`,

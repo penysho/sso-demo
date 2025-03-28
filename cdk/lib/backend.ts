@@ -1,5 +1,4 @@
 import * as cdk from "aws-cdk-lib";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import { DockerImageAsset, Platform } from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
@@ -60,9 +59,6 @@ export class BackendStack extends cdk.Stack {
     super(scope, id, props);
 
     const vpc = props.vpcStack.vpc;
-    const publicSubnets = vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PUBLIC,
-    });
 
     const containerName = "backend";
     const containerPort = 8080;
@@ -287,6 +283,11 @@ export class BackendStack extends cdk.Stack {
         .unsafeUnwrap()
     );
     container.addEnvironment("CORS_ALLOWED_ORIGIN", "*");
+    container.addEnvironment("JWT_SECRET", currentEnvConfig.jwtSecret);
+    container.addEnvironment(
+      "AUTH_SESSION_COOKIE_NAME",
+      "auth_hub_auth_session"
+    );
 
     // Service
     const service = new ecs.FargateService(this, "Service", {
@@ -302,9 +303,13 @@ export class BackendStack extends cdk.Stack {
       // Security groups that allow communication from the ALB to the container are automatically granted
       securityGroups: [props.elasticacheStack.cacheClientSg],
       vpcSubnets: {
-        subnets: publicSubnets.subnets,
+        // To retrieve images from ECR
+        subnets: vpc.publicSubnets,
       },
     });
     this.service = service;
+
+    // Register the service with the blue target group
+    this.blueTargetGroup.addTarget(service);
   }
 }
