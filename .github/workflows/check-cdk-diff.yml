@@ -3,13 +3,12 @@ name: Check CDK Diff
 on:
   pull_request:
 
-env:
-  environment: tst
-
 jobs:
   check-cdk-diff:
     name: Check CDK Diff
     runs-on: ubuntu-latest
+    env:
+      jwt_secret: ${{ secrets.JWT_SECRET }}
     environment: tst
 
     permissions:
@@ -49,7 +48,7 @@ jobs:
 
       - name: Get latest image tag
         env:
-          ECR_REPOSITORY_NAME: sso-demo-${{ env.environment }}
+          ECR_REPOSITORY_NAME: sso-demo-tst
         run: |
           export latest_image_tag=$(aws ecr describe-images \
             --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
