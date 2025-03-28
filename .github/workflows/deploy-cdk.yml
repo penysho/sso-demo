@@ -115,7 +115,7 @@ jobs:
       - name: Deploy app with CodeDeploy Blue/Green deployment
         env:
           APPLICATION_NAME: sso-demo-${{ inputs.environment }}
-          DEPLOYMENT_GROUP_NAME: sso-demo-${{ inputs.environment }}-group1
+          DEPLOYMENT_GROUP_NAME: sso-demo-${{ inputs.environment }}
           TASK_DEFINITION_ARN: ${{ env.TASK_DEFINITION_ARN }}
           CONTAINER_NAME: backend
           CONTAINER_PORT: 8080
