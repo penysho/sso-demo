@@ -123,5 +123,5 @@ jobs:
           aws deploy create-deployment \
           --application-name ${{ env.APPLICATION_NAME }} \
           --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
-          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"${{ env.CONTAINER_NAME }}\",\"ContainerPort\":${{ env.CONTAINER_PORT }}}}}]}"}}' \
+          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"${{ env.CONTAINER_NAME }}\",\"ContainerPort\":${{ env.CONTAINER_PORT }}}}}}]}"}}' \
           --region ap-northeast-1
