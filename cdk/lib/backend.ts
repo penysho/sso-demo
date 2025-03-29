@@ -5,17 +5,20 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import { HostedZone } from "aws-cdk-lib/aws-route53";
 import * as ecrdeploy from "cdk-ecr-deployment";
 import * as path from "path";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { ElasticacheStack } from "./elasticache";
 import { ElbStack } from "./elb";
+import { FrontendStack } from "./frontend";
 import { VpcStack } from "./vpc";
 
 export interface BackendStackProps extends cdk.StackProps {
   readonly vpcStack: VpcStack;
   readonly elbStack: ElbStack;
   readonly elasticacheStack: ElasticacheStack;
+  readonly frontendStack: FrontendStack;
 }
 
 /**
@@ -246,6 +249,10 @@ export class BackendStack extends cdk.Stack {
       ],
     });
 
+    const authHubHostedZone = HostedZone.fromLookup(this, "AuthHubHostedZone", {
+      domainName: currentEnvConfig.frontendDomain,
+    });
+
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
       "TaskDefinition",
@@ -282,7 +289,12 @@ export class BackendStack extends cdk.Stack {
         .secretValueFromJson("password")
         .unsafeUnwrap()
     );
-    container.addEnvironment("CORS_ALLOWED_ORIGIN", "*");
+    container.addEnvironment(
+      "CORS_ALLOWED_ORIGIN",
+      `https://${projectName}-${deployEnv}-auth-hub.${authHubHostedZone.zoneName},` +
+        `https://${projectName}-${deployEnv}-auth-hub-green.${authHubHostedZone.zoneName},` +
+        `https://${props.frontendStack.store3Amplify.attrDefaultDomain}`
+    );
     container.addEnvironment("JWT_SECRET", currentEnvConfig.jwtSecret);
     container.addEnvironment(
       "AUTH_SESSION_COOKIE_NAME",
