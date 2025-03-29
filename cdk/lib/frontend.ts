@@ -166,7 +166,7 @@ export class FrontendStack extends cdk.Stack {
       stage: "PRODUCTION",
     });
 
-    new CfnDomain(this, "AuthHubDomain", {
+    new CfnDomain(this, "AuthHubGreenDomain", {
       appId: this.authHubGreenAmplify.attrAppId,
       domainName: `${projectName}-${deployEnv}-auth-hub-green.${currentEnvConfig.frontendDomain}`,
       enableAutoSubDomain: true,
