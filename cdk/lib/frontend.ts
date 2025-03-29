@@ -109,7 +109,7 @@ export class FrontendStack extends cdk.Stack {
     });
 
     this.authHubGreenAmplify = new CfnApp(this, "AuthHubGreenAmplify", {
-      name: "auth-hub",
+      name: "auth-hub-green",
       accessToken: currentEnvConfig.githubToken,
       iamServiceRole: amplifyRole.roleArn,
       repository: "https://github.com/penysho/sso-demo",
@@ -170,12 +170,7 @@ export class FrontendStack extends cdk.Stack {
       appId: this.authHubGreenAmplify.attrAppId,
       domainName: `${projectName}-${deployEnv}-auth-hub-green.${currentEnvConfig.frontendDomain}`,
       enableAutoSubDomain: true,
-      subDomainSettings: [
-        {
-          prefix: "",
-          branchName: authHubGreenBranch.branchName,
-        },
-      ],
+      subDomainSettings: [],
     });
 
     this.store3Amplify = new CfnApp(this, "Store3Amplify", {

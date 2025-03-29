@@ -2,6 +2,9 @@ name: Check CDK Diff
 
 on:
   pull_request:
+    paths:
+      - "cdk/**"
+      - ".github/workflows/check-cdk-diff.yml"
 
 jobs:
   check-cdk-diff:
