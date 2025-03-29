@@ -166,17 +166,17 @@ export class FrontendStack extends cdk.Stack {
       stage: "PRODUCTION",
     });
 
-    // new CfnDomain(this, "AuthHubGreenDomain", {
-    //   appId: this.authHubGreenAmplify.attrAppId,
-    //   domainName: `${projectName}-${deployEnv}-auth-hub-green.${currentEnvConfig.frontendDomain}`,
-    //   enableAutoSubDomain: true,
-    //   subDomainSettings: [
-    //     {
-    //       prefix: "",
-    //       branchName: authHubGreenBranch.branchName,
-    //     },
-    //   ],
-    // });
+    new CfnDomain(this, "AuthHubGreenDomain", {
+      appId: this.authHubGreenAmplify.attrAppId,
+      domainName: `${projectName}-${deployEnv}-auth-hub-green.${currentEnvConfig.frontendDomain}`,
+      enableAutoSubDomain: true,
+      subDomainSettings: [
+        {
+          prefix: "",
+          branchName: authHubGreenBranch.branchName,
+        },
+      ],
+    });
 
     this.store3Amplify = new CfnApp(this, "Store3Amplify", {
       name: "demo-store-3",
