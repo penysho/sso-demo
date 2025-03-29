@@ -43,6 +43,15 @@ const elasticacheStack = new ElasticacheStack(
   }
 );
 
+const frontendStack = new FrontendStack(
+  app,
+  `${projectName}-${deployEnv}-frontend`,
+  {
+    env: envProps,
+    elbStack: elbStack,
+  }
+);
+
 const backendStack = new BackendStack(
   app,
   `${projectName}-${deployEnv}-backend`,
@@ -51,15 +60,11 @@ const backendStack = new BackendStack(
     vpcStack: vpcStack,
     elbStack: elbStack,
     elasticacheStack: elasticacheStack,
+    frontendStack: frontendStack,
   }
 );
 
 new CiStack(app, `${projectName}-${deployEnv}-ci`, {
   env: envProps,
   backendStack: backendStack,
-});
-
-new FrontendStack(app, `${projectName}-${deployEnv}-frontend`, {
-  env: envProps,
-  elbStack: elbStack,
 });
