@@ -290,7 +290,7 @@ export class BackendStack extends cdk.Stack {
         .unsafeUnwrap()
     );
     container.addEnvironment(
-      "CORS_ALLOWED_ORIGIN",
+      "CORS_ALLOWED_ORIGINS",
       `https://${projectName}-${deployEnv}-auth-hub.${authHubHostedZone.zoneName},` +
         `https://${projectName}-${deployEnv}-auth-hub-green.${authHubHostedZone.zoneName},` +
         `https://${props.frontendStack.store3Amplify.attrDefaultDomain}`
