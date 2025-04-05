@@ -78,7 +78,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 認証セッションIDをCookieに保存（修正版）
+	// 認証セッションIDをCookieに保存
 	cookie := &http.Cookie{
 		Name:     config.AuthSessionCookieName,
 		Value:    sessionID,
@@ -87,6 +87,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   expiresIn,
+		Domain:   config.AuthSessionCookieDomain,
 	}
 	http.SetCookie(w, cookie)
 

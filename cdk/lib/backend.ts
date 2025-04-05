@@ -300,6 +300,10 @@ export class BackendStack extends cdk.Stack {
       "AUTH_SESSION_COOKIE_NAME",
       "auth_hub_auth_session"
     );
+    container.addEnvironment(
+      "AUTH_SESSION_COOKIE_DOMAIN",
+      `${authHubHostedZone.zoneName}`
+    );
 
     // Service
     const service = new ecs.FargateService(this, "Service", {
