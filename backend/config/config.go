@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	AllowedOrigins        []string
-	ClientIDs             []string
-	JWTSecret             []byte
-	AuthSessionCookieName string
+	AllowedOrigins          []string
+	ClientIDs               []string
+	JWTSecret               []byte
+	AuthSessionCookieName   string
+	AuthSessionCookieDomain string
 )
 
 func Init() error {
@@ -36,6 +37,10 @@ func Init() error {
 	AuthSessionCookieName = os.Getenv("AUTH_SESSION_COOKIE_NAME")
 	if AuthSessionCookieName == "" {
 		return fmt.Errorf("AUTH_SESSION_COOKIE_NAME environment variable is not set")
+	}
+	AuthSessionCookieDomain = os.Getenv("AUTH_SESSION_COOKIE_DOMAIN")
+	if AuthSessionCookieDomain == "" {
+		return fmt.Errorf("AUTH_SESSION_COOKIE_DOMAIN environment variable is not set")
 	}
 	return nil
 }
