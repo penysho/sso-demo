@@ -42,7 +42,7 @@ export async function authorize(
 export async function authenticate(
   email: string,
   password: string
-): Promise<string> {
+): Promise<{ sessionId: string; expiresIn: number }> {
   const response = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     credentials: "include",
@@ -59,5 +59,9 @@ export async function authenticate(
     throw new Error(error.message || "Authentication failed");
   }
 
-  return response.text();
+  const data = await response.json();
+  return {
+    sessionId: data.session_id,
+    expiresIn: data.expires_in,
+  };
 }
