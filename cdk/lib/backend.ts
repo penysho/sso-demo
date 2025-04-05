@@ -293,7 +293,7 @@ export class BackendStack extends cdk.Stack {
       "CORS_ALLOWED_ORIGINS",
       `https://${projectName}-${deployEnv}-auth-hub.${authHubHostedZone.zoneName},` +
         `https://${projectName}-${deployEnv}-auth-hub-green.${authHubHostedZone.zoneName},` +
-        `https://${props.frontendStack.store3Amplify.attrDefaultDomain}`
+        `https://main.${props.frontendStack.store3Amplify.attrDefaultDomain}`
     );
     container.addEnvironment("JWT_SECRET", currentEnvConfig.jwtSecret);
     container.addEnvironment(
