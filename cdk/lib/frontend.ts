@@ -25,6 +25,10 @@ export class FrontendStack extends cdk.Stack {
    * Store 3 Amplify
    */
   public readonly store3Amplify: CfnApp;
+  /**
+   * Store 3 Green Amplify
+   */
+  public readonly store3GreenAmplify: CfnApp;
 
   constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
     super(scope, id, props);
@@ -234,6 +238,68 @@ export class FrontendStack extends cdk.Stack {
 
     new CfnBranch(this, "Store3Branch", {
       appId: this.store3Amplify.attrAppId,
+      branchName: currentEnvConfig.branch,
+      framework: "Next.js - SSR",
+      enableAutoBuild: false,
+      stage: "PRODUCTION",
+    });
+
+    this.store3GreenAmplify = new CfnApp(this, "Store3GreenAmplify", {
+      name: "demo-store-3-green",
+      accessToken: currentEnvConfig.githubToken,
+      iamServiceRole: amplifyRole.roleArn,
+      environmentVariables: [
+        {
+          name: "AMPLIFY_MONOREPO_APP_ROOT",
+          value: "demo-store-3",
+        },
+        {
+          name: "NEXT_PUBLIC_API_URL",
+          value: `http://${projectName}-${deployEnv}-api.${currentEnvConfig.apiDomain}:10443`,
+        },
+        {
+          name: "NEXT_PUBLIC_AUTH_HUB_URL",
+          value: `https://${projectName}-${deployEnv}-auth-hub-green.${currentEnvConfig.frontendDomain}`,
+        },
+      ],
+      repository: "https://github.com/penysho/sso-demo",
+      buildSpec: BuildSpec.fromObjectToYaml({
+        version: 1,
+        applications: [
+          {
+            appRoot: "demo-store-3",
+            frontend: {
+              phases: {
+                preBuild: {
+                  commands: ["nvm install 22.8", "nvm use 22.8", "npm install"],
+                },
+                build: {
+                  commands: ["npm run build"],
+                },
+              },
+              artifacts: {
+                baseDirectory: ".next",
+                files: ["**/*"],
+              },
+              cache: {
+                paths: ["node_modules/**/*"],
+              },
+            },
+          },
+        ],
+      }).toBuildSpec(),
+      platform: "WEB_COMPUTE",
+      customRules: [
+        {
+          source: "/<*>",
+          target: "/index.html",
+          status: "404-200",
+        },
+      ],
+    });
+
+    new CfnBranch(this, "Store3GreenBranch", {
+      appId: this.store3GreenAmplify.attrAppId,
       branchName: currentEnvConfig.branch,
       framework: "Next.js - SSR",
       enableAutoBuild: false,
