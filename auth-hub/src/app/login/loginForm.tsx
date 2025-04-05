@@ -146,7 +146,12 @@ export default function LoginForm() {
 
     try {
       setIsLoading(true);
-      await authenticate(data.email, data.password);
+      const { sessionId, expiresIn } = await authenticate(
+        data.email,
+        data.password
+      );
+
+      document.cookie = `${AUTH_SESSION_KEY}=${sessionId}; path=/; max-age=${expiresIn}; secure; samesite=lax`;
 
       const ssoParams = getSSOParams(searchParams);
 

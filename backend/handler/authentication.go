@@ -91,7 +91,19 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
+	// レスポンスの作成
+	resp := model.LoginResponse{
+		SessionID: sessionID,
+		ExpiresIn: expiresIn,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
+
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
