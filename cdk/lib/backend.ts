@@ -112,11 +112,16 @@ export class BackendStack extends cdk.Stack {
         loadBalancer: props.elbStack.loadBalancer,
         open: false,
         port: 10443,
-        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTP,
+        protocol: elasticloadbalancingv2.ApplicationProtocol.HTTPS,
         defaultAction: elasticloadbalancingv2.ListenerAction.fixedResponse(
           403,
           { contentType: "text/plain" }
         ),
+        certificates: [
+          {
+            certificateArn: currentEnvConfig.certificateArn,
+          },
+        ],
       }
     );
 

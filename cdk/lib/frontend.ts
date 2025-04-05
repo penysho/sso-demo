@@ -124,7 +124,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `http://${projectName}-${deployEnv}-api.${currentEnvConfig.apiDomain}:10443`,
+          value: `https://${projectName}-${deployEnv}-api.${currentEnvConfig.apiDomain}:10443`,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -255,7 +255,7 @@ export class FrontendStack extends cdk.Stack {
         },
         {
           name: "NEXT_PUBLIC_API_URL",
-          value: `http://${projectName}-${deployEnv}-api.${currentEnvConfig.apiDomain}:10443`,
+          value: `https://${projectName}-${deployEnv}-api.${currentEnvConfig.apiDomain}:10443`,
         },
         {
           name: "NEXT_PUBLIC_AUTH_HUB_URL",
